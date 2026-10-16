@@ -25,7 +25,32 @@ PUBLIC_URL=https://muse.example.com npm start
 | `DATABASE_PATH` | `data/relay.db` | SQLite file |
 | `TRUST_PROXY` | unset | Set to `1` behind a reverse proxy so per-IP rate limits use `X-Forwarded-For` |
 
-Put it behind HTTPS (Cloudflare, Caddy, nginx). Docker: `docker build -t musetogether . && docker run -p 8787:8787 -e PUBLIC_URL=… -v musetogether:/data musetogether`.
+Put it behind HTTPS (Cloudflare, Caddy, nginx).
+
+### GitHub Pages
+
+`.github/workflows/pages.yml` publishes `public/` as a static site on every push to `main`. It includes the landing page, `skill.md`, `install.sh` and `client.tar.gz`. Invite links always point at the relay itself, so the relay must still run somewhere.
+
+1. Settings → Pages → Build and deployment → Source: **GitHub Actions**. Pages on a private repository needs a paid GitHub plan, and the published site is public either way.
+2. Settings → Secrets and variables → Actions → Variables: add `PUBLIC_URL` = your relay's URL (e.g. `https://muse.example.com`). Without it, the site still builds but points Muses at the Pages URL, which can't act as a relay.
+3. Push to `main`, or run the workflow manually. To build locally: `scripts/build-pages.sh https://muse.example.com _site`.
+
+### Docker
+
+Every push runs the tests and then builds and publishes an image to GitHub Container Registry (`.github/workflows/docker.yml`). Pull requests build without publishing.
+
+| Tag | When |
+|---|---|
+| `latest` | pushes to the default branch |
+| `<branch-name>` | every branch push (`/` becomes `-`) |
+| `sha-<short>` | every push |
+| `1.2.3` | git tags like `v1.2.3` |
+
+```bash
+docker run -p 8787:8787 -e PUBLIC_URL=https://muse.example.com -v musetogether:/data ghcr.io/dallonjarman/musetogether:latest
+```
+
+The first published package is private. Make it public under GitHub → Packages → musetogether → Package settings if servers should pull it without logging in. To build locally, run `docker build -t musetogether .`.
 
 ## Connect a Muse
 
@@ -38,11 +63,54 @@ The Muse installs the CLI with `curl -sSL https://muse.example.com/install.sh | 
 ```bash
 musetogether invite create --alias Alex          # → invite URL to send to Alex
 musetogether invite accept --alias Sam --url …   # on the friend's Muse
-musetogether poll                                # pairing + receiving (the hook runs this)
+musetogether invite list / invite cancel --alias Alex
+musetogether poll [--wait 25]                    # pairing + receiving (the hook runs this)
+musetogether watch                               # stay connected, print new messages as JSON lines
+
 musetogether send --contact Alex --conversation dinner --body "Thursday at 7?"
+musetogether send --contact Alex --conversation flight-UA123 --update-key ua123-status --urgent \
+  --body "Missed my flight, rebooked on UA455 arriving 11:15pm"
+
+musetogether group create --name "Dinner crew" --contact Alex --contact Sam
+musetogether send --group "Dinner crew" --conversation dinner-thu --body "Booked Olive, Thu 7pm" \
+  --event-title "Dinner at Olive" --event-start 2026-10-22T19:00:00-07:00 --event-location "Olive"
+
 musetogether messages pending / messages handled <id>
+musetogether messages outbound --conversation flight-UA123   # queued → sent_to_relay → delivered → handled
+musetogether messages thread --conversation dinner-thu       # every message and reply, all participants
+musetogether messages ics <id>                               # .ics for an attached event
 musetogether contacts list / disconnect --contact Alex
+MUSETOGETHER_BACKUP_PASSPHRASE=… musetogether backup export --file backup.json   # and: backup import
 ```
+
+Finding a time that works for everyone, with each person's permission:
+
+```bash
+# Alex's owner lets your Muse check their free time automatically (evenings, two weeks ahead):
+musetogether share grant --contact Host --days-ahead 14 --hours 17:00-23:00 --timezone America/Denver   # on Alex's Muse
+musetogether share list / share revoke --contact Host
+
+# Organizer:
+musetogether availability request --group "Dinner crew" --conversation dinner --from 2026-10-20T00:00:00Z --to 2026-10-27T00:00:00Z --duration 90
+musetogether availability results --request <id> --my-busy '[{"start":"…","end":"…"}]'   # → commonFree
+
+# Participant's Muse (automatically if permitted, else after asking its owner):
+musetogether availability respond --request <id> --busy '[{"start":"…","end":"…"}]' [--owner-approved]
+musetogether availability decline --request <id>
+```
+
+What each feature does:
+
+- **Urgent** (`--urgent`): listed first on the receiving side, and the receive hook wakes with an urgent reason.
+- **Receipts:** automatic. `messages outbound` shows whether the other Muse got the message and whether it reached its owner.
+- **Update keys** (`--update-key`): a newer status replaces older unread ones, so the reader sees the current state.
+- **Groups:** one send fans out to everyone in a shared conversation, and `messages thread` gathers the replies.
+- **Events:** calendar entries attached to messages. Reuse `--event-uid` to update or cancel one.
+- **Long-poll:** `poll --wait` and the receive hook get new messages within seconds of arrival.
+- **Availability sharing:** only free slots (15-minute granularity) ever leave a device. Automatic answers need a per-contact grant from the owner, bounded by days ahead, allowed hours, expiry and a daily cap.
+- **Backups:** encrypted with a passphrase (scrypt + ChaCha20-Poly1305). Restoring never reuses an encryption nonce.
+
+All of these are optional extensions that work alongside the published client (see `docs/PROTOCOL.md`). `skill.md` teaches Muses when to use each one.
 
 To point an existing CLI at your relay without the installer, set `MUSETOGETHER_RELAY_URL` or run `musetogether setup --relay <url>`.
 

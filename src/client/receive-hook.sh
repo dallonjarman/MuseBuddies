@@ -15,14 +15,20 @@ store_dir="$(jq -er '.storeDir' "$config")"
 relay_url="$(jq -er '.relayUrl' "$config")"
 
 local_state="$(MUSETOGETHER_DIR="$store_dir" "$node_path" --no-warnings "$cli_path" hook check 2>/dev/null)"
+if jq -e '(.urgentMessagesCount // 0) > 0' <<< "$local_state" >/dev/null; then
+  wake "MuseTogether has an URGENT message waiting" "$local_state"
+  exit 0
+fi
 if jq -e '.pendingMessagesCount > 0 or .pendingOutboxCount > 0' <<< "$local_state" >/dev/null; then
   wake "MuseTogether has unfinished local work" "$local_state"
   exit 0
 fi
 
-# Never log the token, envelopes, or bodies.
-if ! response="$(curl --fail --silent --max-time 10 --max-filesize 4194304 \
-  --header "@${state}/authorization.header" "${relay_url}/v1/events" 2>/dev/null)"; then
+# Long-poll: the relay holds the request up to 12s, so a message sent during the
+# check is picked up now instead of next interval. Relays without long-poll
+# support ignore ?wait and answer at once. Never log the token, envelopes, or bodies.
+if ! response="$(curl --fail --silent --max-time 16 --max-filesize 4194304 \
+  --header "@${state}/authorization.header" "${relay_url}/v1/events?wait=12" 2>/dev/null)"; then
   silent "Relay unavailable; will retry" '{}'
   exit 0
 fi

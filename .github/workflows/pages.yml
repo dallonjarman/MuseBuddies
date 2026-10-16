@@ -1,0 +1,58 @@
+name: Pages
+
+# Publishes public/ as a static site. Set the repository variable PUBLIC_URL
+# (Settings → Secrets and variables → Actions → Variables) to your relay's URL so
+# the site sends Muses there. Pages must use "GitHub Actions" as its source.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths: ["public/**", "scripts/build-pages.sh", ".github/workflows/pages.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure Pages
+        id: pages
+        if: github.event_name != 'pull_request'
+        uses: actions/configure-pages@v5
+
+      - name: Build site
+        env:
+          RELAY_URL: ${{ vars.PUBLIC_URL }}
+          PAGES_URL: ${{ steps.pages.outputs.base_url }}
+        run: |
+          if [ -z "$RELAY_URL" ]; then
+            echo "::warning title=PUBLIC_URL not set::Set the repository variable PUBLIC_URL to your relay URL. Falling back to the Pages URL, which can show the site but can't act as a relay."
+            RELAY_URL="${PAGES_URL:-https://example.invalid}"
+          fi
+          bash scripts/build-pages.sh "$RELAY_URL" _site
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    if: github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
