@@ -45,6 +45,7 @@ export interface Message {
   direction: "inbound" | "outbound";
   body: string;
   status: "pending_send" | "sent" | "pending_muse" | "handled";
+  priority: "normal" | "urgent";
   sentAt: string;
   createdAt: string;
 }
@@ -116,6 +117,14 @@ export class Store {
       );
       CREATE TABLE IF NOT EXISTS processed_events (event_id TEXT PRIMARY KEY, processed_at TEXT NOT NULL);
     `);
+    this.migrate();
+  }
+
+  private migrate(): void {
+    const columns = (this.db.prepare("PRAGMA table_info(messages)").all() as { name: string }[]).map((c) => c.name);
+    if (!columns.includes("priority")) {
+      this.db.exec("ALTER TABLE messages ADD COLUMN priority TEXT NOT NULL DEFAULT 'normal'");
+    }
   }
 
   close(): void {
@@ -195,15 +204,19 @@ export class Store {
 
   saveMessage(m: Omit<Message, "contact">): void {
     this.db
-      .prepare("INSERT OR IGNORE INTO messages VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
-      .run(m.messageId, m.connectionId, m.conversationId, m.inReplyTo, m.direction, m.body, m.status, m.sentAt, m.createdAt);
+      .prepare(
+        `INSERT OR IGNORE INTO messages
+           (message_id, connection_id, conversation_id, in_reply_to, direction, body, status, priority, sent_at, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      )
+      .run(m.messageId, m.connectionId, m.conversationId, m.inReplyTo, m.direction, m.body, m.status, m.priority, m.sentAt, m.createdAt);
   }
 
   pendingMessages(): Message[] {
     const rows = this.db
       .prepare(
         `SELECT m.*, c.alias FROM messages m LEFT JOIN contacts c ON c.connection_id = m.connection_id
-         WHERE m.status = 'pending_muse' ORDER BY m.created_at`
+         WHERE m.status = 'pending_muse' ORDER BY m.priority = 'urgent' DESC, m.created_at`
       )
       .all() as Row[];
     return rows.map((r) => ({
@@ -215,6 +228,7 @@ export class Store {
       direction: r.direction as Message["direction"],
       body: r.body as string,
       status: r.status as Message["status"],
+      priority: r.priority === "urgent" ? "urgent" : "normal",
       sentAt: r.sent_at as string,
       createdAt: r.created_at as string
     }));

@@ -28,6 +28,7 @@ import {
   type HandshakeSubmissionRequest,
   type HandshakeSubmissionResponse,
   type MessageEvent,
+  type Priority,
   type RegisterInboxResponse,
   type RelayEvent
 } from "../shared/protocol.ts";
@@ -338,6 +339,7 @@ export class MuseTogether {
           direction: "inbound",
           body: payload.body,
           status: "pending_muse",
+          priority: payload.priority ?? "normal",
           sentAt: payload.sentAt,
           createdAt: new Date().toISOString()
         });
@@ -345,7 +347,7 @@ export class MuseTogether {
     });
   }
 
-  async send(alias: string, conversationId: string, body: string, inReplyTo: string | null): Promise<object> {
+  async send(alias: string, conversationId: string, body: string, inReplyTo: string | null, priority: Priority = "normal"): Promise<object> {
     const { relay } = this.session();
     const contact = this.store.getContact(alias);
     if (!contact) throw new Error(`Contact '${alias}' not found`);
@@ -361,7 +363,9 @@ export class MuseTogether {
       conversationId,
       inReplyTo,
       sentAt: new Date().toISOString(),
-      body
+      body,
+      // Omitted when normal so the frame is byte-for-byte what older clients send.
+      ...(priority === "urgent" ? { priority } : {})
     };
     const nonce = contact.sendNonce;
     const ciphertext = encrypt(Buffer.from(contact.sendKey, "base64url"), BigInt(nonce), EMPTY, Buffer.from(JSON.stringify(payload)));
@@ -369,12 +373,12 @@ export class MuseTogether {
     this.store.tx(() => {
       contact.sendNonce = nonce + 1;
       this.store.saveContact(contact);
-      this.store.saveMessage({ ...payload, connectionId, direction: "outbound", status: "pending_send", createdAt: payload.sentAt });
+      this.store.saveMessage({ ...payload, priority, connectionId, direction: "outbound", status: "pending_send", createdAt: payload.sentAt });
       this.store.queueOutbox({ messageId: payload.messageId, connectionId, nonce, ciphertext: ciphertext.toString("base64url") });
     });
     await this.drainOutbox(relay, connectionId);
     const queued = this.store.pendingOutbox(connectionId).some((o) => o.messageId === payload.messageId);
-    return { messageId: payload.messageId, status: queued ? "pending_outbox" : "sent", connectionId };
+    return { messageId: payload.messageId, status: queued ? "pending_outbox" : "sent", priority, connectionId };
   }
 
   private closeLocally(contact: Contact): void {
@@ -444,8 +448,15 @@ export function hookCheck(): object {
   const store = new Store(storeDir(), true);
   try {
     const count = (sql: string): number => Number((store.db.prepare(sql).get() as { n: number }).n);
+    let urgentMessagesCount = 0;
+    try {
+      urgentMessagesCount = count("SELECT COUNT(*) AS n FROM messages WHERE status = 'pending_muse' AND priority = 'urgent'");
+    } catch {
+      // Store not yet migrated; it gains the column on the next writable open.
+    }
     return {
       pendingMessagesCount: count("SELECT COUNT(*) AS n FROM messages WHERE status = 'pending_muse'"),
+      urgentMessagesCount,
       pendingOutboxCount: count("SELECT COUNT(*) AS n FROM outbox WHERE status = 'pending'")
     };
   } finally {
@@ -468,7 +479,7 @@ const USAGE = [
   "invite create [--alias <name>]",
   "invite accept --alias <name> [--url <link>]   (or pipe the link on stdin)",
   "poll",
-  "send --contact <name> --conversation <id> [--body <text>] [--reply-to <id>]   (or pipe the body on stdin)",
+  "send --contact <name> --conversation <id> [--body <text>] [--reply-to <id>] [--urgent]   (or pipe the body on stdin)",
   "messages pending",
   "messages handled <id>",
   "contacts list",
@@ -515,7 +526,9 @@ export async function main(argv: string[]): Promise<void> {
     } else if (command === "poll") print(await app.poll());
     else if (command === "send") {
       const body = flag("--body") ?? (await readStdin());
-      print(await app.send(required("--contact"), required("--conversation"), body, flag("--reply-to") ?? null));
+      const priority = argv.includes("--urgent") ? "urgent" : (flag("--priority") ?? "normal");
+      if (priority !== "normal" && priority !== "urgent") throw new Error("--priority must be normal or urgent");
+      print(await app.send(required("--contact"), required("--conversation"), body, flag("--reply-to") ?? null, priority));
     } else if (command === "messages" && sub === "pending") print(app.store.pendingMessages());
     else if (command === "messages" && sub === "handled") {
       if (!argv[2]) throw new Error("Usage: musetogether messages handled <id>");

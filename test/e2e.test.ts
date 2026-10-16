@@ -3,8 +3,9 @@ import fs from "node:fs";
 import type { AddressInfo } from "node:net";
 import os from "node:os";
 import path from "node:path";
+import { DatabaseSync } from "node:sqlite";
 import { after, before, test } from "node:test";
-import { MuseTogether } from "../src/client/cli.ts";
+import { MuseTogether, hookCheck } from "../src/client/cli.ts";
 import { Store } from "../src/client/store.ts";
 import { createServer } from "../src/server/main.ts";
 import { Relay } from "../src/server/relay.ts";
@@ -107,4 +108,55 @@ test("relay rejects unauthenticated and non-participant requests", async () => {
     body: JSON.stringify({ messageId: "m", nonce: 0, ciphertext: "AAAA" })
   });
   assert.equal(r2.status, 404);
+});
+
+async function pair(a: MuseTogether, aliasForB: string, b: MuseTogether, aliasForA: string): Promise<void> {
+  const { inviteUrl } = (await a.inviteCreate(aliasForB)) as { inviteUrl: string };
+  await b.inviteAccept(aliasForA, inviteUrl);
+  await a.poll();
+  await b.poll();
+  await a.poll();
+  await b.poll();
+}
+
+test("urgent updates are delivered first and flagged for the hook", async () => {
+  const traveler = muse("traveler");
+  const friend = muse("friend");
+  await traveler.setup(baseUrl);
+  await friend.setup(baseUrl);
+  await pair(traveler, "Alex", friend, "Sam");
+
+  await traveler.send("Alex", "flight-UA123", "Delayed 45 min, landing 8:25pm.", null);
+  const sent = (await traveler.send("Alex", "flight-UA123", "Missed the flight. Rebooked on UA455, 11:15pm.", null, "urgent")) as {
+    priority: string;
+  };
+  assert.equal(sent.priority, "urgent");
+  await friend.poll();
+
+  const pending = friend.store.pendingMessages();
+  assert.deepEqual(pending.map((m) => [m.priority, m.conversationId]), [["urgent", "flight-UA123"], ["normal", "flight-UA123"]]);
+  assert.match(pending[0].body, /Missed the flight/);
+
+  process.env.MUSETOGETHER_DIR = path.join(tmp, "friend");
+  try {
+    assert.deepEqual(hookCheck(), { pendingMessagesCount: 2, urgentMessagesCount: 1, pendingOutboxCount: 0 });
+    friend.store.markHandled(pending[0].messageId);
+    assert.equal((hookCheck() as { urgentMessagesCount: number }).urgentMessagesCount, 0);
+  } finally {
+    delete process.env.MUSETOGETHER_DIR;
+  }
+});
+
+test("stores created before the priority column are migrated", () => {
+  const dir = path.join(tmp, "legacy");
+  fs.mkdirSync(dir);
+  const legacy = new DatabaseSync(path.join(dir, "state.db"));
+  legacy.exec(`CREATE TABLE messages (
+    message_id TEXT PRIMARY KEY, connection_id TEXT NOT NULL, conversation_id TEXT NOT NULL, in_reply_to TEXT,
+    direction TEXT NOT NULL, body TEXT NOT NULL, status TEXT NOT NULL, sent_at TEXT NOT NULL, created_at TEXT NOT NULL)`);
+  legacy.exec("INSERT INTO messages VALUES ('m1', 'c1', 'conv', NULL, 'inbound', 'hi', 'pending_muse', '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z')");
+  legacy.close();
+  const store = new Store(dir);
+  assert.equal(store.pendingMessages()[0].priority, "normal");
+  store.close();
 });

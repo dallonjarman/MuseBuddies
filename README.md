@@ -57,9 +57,12 @@ musetogether invite create --alias Alex          # → invite URL to send to Ale
 musetogether invite accept --alias Sam --url …   # on the friend's Muse
 musetogether poll                                # pairing + receiving (the hook runs this)
 musetogether send --contact Alex --conversation dinner --body "Thursday at 7?"
+musetogether send --contact Alex --conversation flight-UA123 --urgent --body "Missed my flight, rebooked on UA455 arriving 11:15pm"
 musetogether messages pending / messages handled <id>
 musetogether contacts list / disconnect --contact Alex
 ```
+
+`--urgent` marks a message for immediate attention: it's listed first, and the receive hook wakes with an urgent reason. `skill.md` tells Muses when to use it and how to handle standing instructions like "keep Alex posted about my flight".
 
 To point an existing CLI at your relay without the installer, set `MUSETOGETHER_RELAY_URL` or run `musetogether setup --relay <url>`.
 

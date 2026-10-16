@@ -32,6 +32,7 @@ The `#fragment` never reaches the relay because browsers and `fetch` don't send 
 - Transport frames use ChaCha20-Poly1305 with empty AD. The 96-bit nonce is 4 zero bytes followed by a 64-bit little-endian counter. The counter is the frame's `nonce` field, and each direction starts at 0.
 - The responder's first transport frame (nonce 0) is `{"type":"ready","connectionId":…}`. The initiator stays `pending_handshake` until it decrypts this frame.
 - Application frames are JSON: `{version:1, messageId, conversationId, inReplyTo, sentAt, body}`, with a 32 KiB body limit. `messageId` must match the envelope's `messageId`.
+- **Extension (this repo):** an optional `priority: "urgent"` in the application frame. Senders omit it for normal messages. Receivers treat a missing or unknown value as `normal`. It's inside the ciphertext, so the relay can't see which messages are urgent. The published client ignores unknown fields, so it still receives these messages, just without the urgency.
 
 ## HTTP API
 

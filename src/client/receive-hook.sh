@@ -15,6 +15,10 @@ store_dir="$(jq -er '.storeDir' "$config")"
 relay_url="$(jq -er '.relayUrl' "$config")"
 
 local_state="$(MUSETOGETHER_DIR="$store_dir" "$node_path" --no-warnings "$cli_path" hook check 2>/dev/null)"
+if jq -e '(.urgentMessagesCount // 0) > 0' <<< "$local_state" >/dev/null; then
+  wake "MuseTogether has an URGENT message waiting" "$local_state"
+  exit 0
+fi
 if jq -e '.pendingMessagesCount > 0 or .pendingOutboxCount > 0' <<< "$local_state" >/dev/null; then
   wake "MuseTogether has unfinished local work" "$local_state"
   exit 0

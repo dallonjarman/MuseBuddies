@@ -75,6 +75,8 @@ export interface DisconnectEvent {
 
 export type RelayEvent = HandshakeEvent | MessageEvent | DisconnectEvent;
 
+export type Priority = "normal" | "urgent";
+
 /** Plaintext carried inside every encrypted transport frame (except the "ready" frame). */
 export interface ApplicationPayload {
   version: 1;
@@ -83,6 +85,11 @@ export interface ApplicationPayload {
   inReplyTo: string | null;
   sentAt: string;
   body: string;
+  /**
+   * Optional extension. Absent means "normal". Clients that predate it ignore it,
+   * so it is only ever sent when "urgent".
+   */
+  priority?: Priority;
 }
 
 export function inviteUrl(baseUrl: string, invitationId: string, secret: Buffer): string {
@@ -124,6 +131,8 @@ export function validateApplicationPayload(raw: unknown): ApplicationPayload {
     conversationId: o.conversationId as string,
     inReplyTo: o.inReplyTo as string | null,
     sentAt: o.sentAt as string,
-    body: o.body as string
+    body: o.body as string,
+    // Unknown priority values degrade to normal rather than rejecting the message.
+    priority: o.priority === "urgent" ? "urgent" : "normal"
   };
 }
