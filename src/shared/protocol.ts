@@ -77,7 +77,37 @@ export type RelayEvent = HandshakeEvent | MessageEvent | DisconnectEvent;
 
 export type Priority = "normal" | "urgent";
 
-/** Plaintext carried inside every encrypted transport frame (except the "ready" frame). */
+/**
+ * Extensions this implementation understands, advertised inside encrypted frames so
+ * peers only send extension frames (receipts) to Muses that can process them.
+ * Every extension field is optional and ignored by clients that predate it.
+ */
+export const FEATURES = ["priority", "receipts", "update-key", "group", "event", "nonce-skip"] as const;
+export type Feature = (typeof FEATURES)[number];
+
+export interface GroupInfo {
+  /** Stable random id chosen by the sender for this group. */
+  id: string;
+  /** The sender's label for the group, e.g. "Dinner crew". */
+  name: string;
+  /** Number of people in the group, including the sender. */
+  size: number;
+}
+
+export type PlanEventStatus = "tentative" | "confirmed" | "cancelled";
+
+/** A calendar entry attached to a message. Reusing `uid` updates the same entry. */
+export interface PlanEvent {
+  uid: string;
+  title: string;
+  start: string;
+  end?: string;
+  location?: string;
+  notes?: string;
+  status: PlanEventStatus;
+}
+
+/** Plaintext carried inside every encrypted application frame. */
 export interface ApplicationPayload {
   version: 1;
   messageId: string;
@@ -85,12 +115,46 @@ export interface ApplicationPayload {
   inReplyTo: string | null;
   sentAt: string;
   body: string;
-  /**
-   * Optional extension. Absent means "normal". Clients that predate it ignore it,
-   * so it is only ever sent when "urgent".
-   */
+  /** Absent means normal. Only sent when "urgent". */
   priority?: Priority;
+  /** Sender's supported extensions. */
+  features?: string[];
+  /** A newer message with the same key from the same sender replaces this one while unread. */
+  updateKey?: string;
+  group?: GroupInfo;
+  event?: PlanEvent;
 }
+
+/** First transport frame from the responder (inviter). `features` is an extension. */
+export interface ReadyFrame {
+  type: "ready";
+  connectionId: string;
+  features?: string[];
+}
+
+/**
+ * Extension frame: the accepter's reply to a ready frame that advertised features,
+ * so the inviter learns the accepter's features without waiting for a message.
+ */
+export interface FeaturesFrame {
+  type: "features";
+  features: string[];
+}
+
+export type ReceiptState = "delivered" | "handled";
+
+/** Extension frame acknowledging messages. Only sent to peers advertising "receipts". */
+export interface ReceiptFrame {
+  type: "receipt";
+  version: 1;
+  state: ReceiptState;
+  messageIds: string[];
+  at: string;
+}
+
+const MAX_FIELD = 500;
+const shortString = (v: unknown, max = MAX_FIELD): v is string => typeof v === "string" && v.length > 0 && v.length <= max;
+const isTimestamp = (v: unknown): v is string => typeof v === "string" && !Number.isNaN(Date.parse(v));
 
 export function inviteUrl(baseUrl: string, invitationId: string, secret: Buffer): string {
   return `${baseUrl.replace(/\/+$/, "")}/invite/${invitationId}#${secret.toString("base64url")}`;
@@ -115,6 +179,32 @@ export function parseInviteUrl(raw: string, expectedOrigin?: string): { invitati
   return { invitationId, secret };
 }
 
+export function validatePlanEvent(raw: unknown): PlanEvent {
+  const o = raw as Record<string, unknown> | null;
+  if (typeof o !== "object" || o === null) throw new Error("event must be an object");
+  if (!shortString(o.uid, 200)) throw new Error("event.uid is required");
+  if (!shortString(o.title)) throw new Error("event.title is required");
+  if (!isTimestamp(o.start)) throw new Error("event.start must be an ISO 8601 timestamp");
+  if (o.end !== undefined && (!isTimestamp(o.end) || Date.parse(o.end) < Date.parse(o.start))) {
+    throw new Error("event.end must be an ISO 8601 timestamp after start");
+  }
+  for (const k of ["location", "notes"] as const) {
+    if (o[k] !== undefined && !shortString(o[k], k === "notes" ? 2000 : MAX_FIELD)) throw new Error(`event.${k} is invalid`);
+  }
+  const status = o.status ?? "confirmed";
+  if (status !== "tentative" && status !== "confirmed" && status !== "cancelled") throw new Error("event.status is invalid");
+  return {
+    uid: o.uid,
+    title: o.title,
+    start: new Date(o.start).toISOString(),
+    ...(o.end !== undefined ? { end: new Date(o.end as string).toISOString() } : {}),
+    ...(o.location !== undefined ? { location: o.location as string } : {}),
+    ...(o.notes !== undefined ? { notes: o.notes as string } : {}),
+    status
+  };
+}
+
+/** Validates required fields strictly; malformed optional extensions are dropped, not fatal. */
 export function validateApplicationPayload(raw: unknown): ApplicationPayload {
   const o = raw as Record<string, unknown> | null;
   if (typeof o !== "object" || o === null) throw new Error("Payload is not an object");
@@ -124,15 +214,37 @@ export function validateApplicationPayload(raw: unknown): ApplicationPayload {
   }
   if (o.inReplyTo !== null && typeof o.inReplyTo !== "string") throw new Error("Payload field inReplyTo is invalid");
   if (Buffer.byteLength(o.body as string, "utf8") > MAX_PLAINTEXT_BYTES) throw new Error("Payload body too large");
-  if (Number.isNaN(Date.parse(o.sentAt as string))) throw new Error("Payload sentAt is not a timestamp");
-  return {
+  if (!isTimestamp(o.sentAt)) throw new Error("Payload sentAt is not a timestamp");
+
+  const payload: ApplicationPayload = {
     version: 1,
     messageId: o.messageId as string,
     conversationId: o.conversationId as string,
     inReplyTo: o.inReplyTo as string | null,
     sentAt: o.sentAt as string,
     body: o.body as string,
-    // Unknown priority values degrade to normal rather than rejecting the message.
     priority: o.priority === "urgent" ? "urgent" : "normal"
   };
+  if (Array.isArray(o.features)) payload.features = o.features.filter((f): f is string => shortString(f, 50)).slice(0, 50);
+  if (shortString(o.updateKey, 200)) payload.updateKey = o.updateKey;
+  const g = o.group as Record<string, unknown> | undefined;
+  if (g && shortString(g.id, 100) && shortString(g.name, 200) && Number.isInteger(g.size) && (g.size as number) >= 2 && (g.size as number) <= 100) {
+    payload.group = { id: g.id, name: g.name, size: g.size as number };
+  }
+  if (o.event !== undefined) {
+    try {
+      payload.event = validatePlanEvent(o.event);
+    } catch {
+      // drop a malformed attachment, keep the message
+    }
+  }
+  return payload;
+}
+
+export function validateReceiptFrame(o: Record<string, unknown>): ReceiptFrame {
+  if (o.version !== 1 || (o.state !== "delivered" && o.state !== "handled")) throw new Error("Invalid receipt");
+  if (!Array.isArray(o.messageIds) || o.messageIds.length > 500 || !o.messageIds.every((m) => shortString(m, 200))) {
+    throw new Error("Invalid receipt messageIds");
+  }
+  return { type: "receipt", version: 1, state: o.state, messageIds: o.messageIds as string[], at: isTimestamp(o.at) ? o.at : new Date().toISOString() };
 }

@@ -55,14 +55,37 @@ The Muse installs the CLI with `curl -sSL https://muse.example.com/install.sh | 
 ```bash
 musetogether invite create --alias Alex          # → invite URL to send to Alex
 musetogether invite accept --alias Sam --url …   # on the friend's Muse
-musetogether poll                                # pairing + receiving (the hook runs this)
+musetogether invite list / invite cancel --alias Alex
+musetogether poll [--wait 25]                    # pairing + receiving (the hook runs this)
+musetogether watch                               # stay connected, print new messages as JSON lines
+
 musetogether send --contact Alex --conversation dinner --body "Thursday at 7?"
-musetogether send --contact Alex --conversation flight-UA123 --urgent --body "Missed my flight, rebooked on UA455 arriving 11:15pm"
+musetogether send --contact Alex --conversation flight-UA123 --update-key ua123-status --urgent \
+  --body "Missed my flight, rebooked on UA455 arriving 11:15pm"
+
+musetogether group create --name "Dinner crew" --contact Alex --contact Sam
+musetogether send --group "Dinner crew" --conversation dinner-thu --body "Booked Olive, Thu 7pm" \
+  --event-title "Dinner at Olive" --event-start 2026-10-22T19:00:00-07:00 --event-location "Olive"
+
 musetogether messages pending / messages handled <id>
+musetogether messages outbound --conversation flight-UA123   # queued → sent_to_relay → delivered → handled
+musetogether messages thread --conversation dinner-thu       # every message and reply, all participants
+musetogether messages ics <id>                               # .ics for an attached event
 musetogether contacts list / disconnect --contact Alex
+MUSETOGETHER_BACKUP_PASSPHRASE=… musetogether backup export --file backup.json   # and: backup import
 ```
 
-`--urgent` marks a message for immediate attention: it's listed first, and the receive hook wakes with an urgent reason. `skill.md` tells Muses when to use it and how to handle standing instructions like "keep Alex posted about my flight".
+What each feature does:
+
+- **Urgent** (`--urgent`): listed first on the receiving side, and the receive hook wakes with an urgent reason.
+- **Receipts:** automatic. `messages outbound` shows whether the other Muse got the message and whether it reached its owner.
+- **Update keys** (`--update-key`): a newer status replaces older unread ones, so the reader sees the current state.
+- **Groups:** one send fans out to everyone in a shared conversation, and `messages thread` gathers the replies.
+- **Events:** calendar entries attached to messages. Reuse `--event-uid` to update or cancel one.
+- **Long-poll:** `poll --wait` and the receive hook get new messages within seconds of arrival.
+- **Backups:** encrypted with a passphrase (scrypt + ChaCha20-Poly1305). Restoring never reuses an encryption nonce.
+
+All of these are optional extensions that work alongside the published client (see `docs/PROTOCOL.md`). `skill.md` teaches Muses when to use each one.
 
 To point an existing CLI at your relay without the installer, set `MUSETOGETHER_RELAY_URL` or run `musetogether setup --relay <url>`.
 

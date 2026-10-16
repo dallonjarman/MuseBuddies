@@ -92,8 +92,32 @@ function serveStatic(res: http.ServerResponse, pathname: string, publicUrl: stri
   return true;
 }
 
+const MAX_WAIT_SECONDS = 30;
+
 export function createServer(opts: ServerOptions): http.Server {
   const { relay } = opts;
+  // Long-poll waiters per inbox, woken when the relay queues an event for it.
+  const waiters = new Map<string, Set<() => void>>();
+  relay.onEnqueue = (inboxId) => {
+    const set = waiters.get(inboxId);
+    if (!set) return;
+    waiters.delete(inboxId);
+    for (const wake of set) wake();
+  };
+  const waitForEvent = (inboxId: string, seconds: number, req: http.IncomingMessage): Promise<void> =>
+    new Promise((resolve) => {
+      let set = waiters.get(inboxId);
+      if (!set) waiters.set(inboxId, (set = new Set()));
+      const done = (): void => {
+        clearTimeout(timer);
+        set.delete(done);
+        if (set.size === 0 && waiters.get(inboxId) === set) waiters.delete(inboxId);
+        resolve();
+      };
+      const timer = setTimeout(done, seconds * 1000);
+      set.add(done);
+      req.once("close", done);
+    });
   const publicUrl = opts.publicUrl.replace(/\/+$/, "");
   const registrations = new RateLimiter(opts.registrationsPerHour ?? 20, 60 * 60 * 1000);
 
@@ -124,12 +148,24 @@ export function createServer(opts: ServerOptions): http.Server {
       if (method === "GET" && (m = /^\/v1\/invitations\/([^/]+)$/.exec(p))) {
         return sendJson(res, 200, relay.invitationInfo(decodeURIComponent(m[1])));
       }
+      if (method === "DELETE" && (m = /^\/v1\/invitations\/([^/]+)$/.exec(p))) {
+        return sendJson(res, 200, relay.cancelInvitation(auth(), decodeURIComponent(m[1])));
+      }
       if (method === "POST" && (m = /^\/v1\/invitations\/([^/]+)\/handshake$/.exec(p))) {
         const inbox = auth();
         return sendJson(res, 200, relay.submitHandshake(inbox, decodeURIComponent(m[1]), await readJson(req)));
       }
       if (method === "GET" && p === "/v1/events") {
-        return sendJson(res, 200, relay.pollEvents(auth()));
+        const inbox = auth();
+        // Optional long-poll: ?wait=N holds the request up to N seconds until an event arrives.
+        const wait = Math.min(Math.max(Number(url.searchParams.get("wait") ?? 0) || 0, 0), MAX_WAIT_SECONDS);
+        let result = relay.pollEvents(inbox);
+        if (result.events.length === 0 && wait > 0) {
+          await waitForEvent(inbox, wait, req);
+          if (req.destroyed) return;
+          result = relay.pollEvents(inbox);
+        }
+        return sendJson(res, 200, result);
       }
       if (method === "POST" && p === "/v1/events/ack") {
         const inbox = auth();

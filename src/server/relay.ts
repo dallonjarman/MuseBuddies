@@ -57,6 +57,8 @@ function decodedLength(b64: string): number {
 export class Relay {
   readonly db: DatabaseSync;
   private readonly now: () => number;
+  /** Called after an event is queued for an inbox (used to wake long-polls). */
+  onEnqueue: ((inboxId: string) => void) | null = null;
 
   constructor(dbPath = ":memory:", now: () => number = Date.now) {
     this.db = new DatabaseSync(dbPath);
@@ -131,6 +133,8 @@ export class Relay {
     const eventId = id("evt_");
     const body = JSON.stringify({ eventId, ...event, createdAt: this.iso(now) });
     this.db.prepare("INSERT INTO events (id, inbox_id, body, created_at) VALUES (?, ?, ?, ?)").run(eventId, inboxId, body, now);
+    // Runs after the surrounding transaction has committed.
+    queueMicrotask(() => this.onEnqueue?.(inboxId));
   }
 
   // ---- auth ----
@@ -183,6 +187,19 @@ export class Relay {
     return { invitationId: row.id, inviterInboxId: row.inviter_inbox_id, status: row.status, expiresAt: this.iso(row.expires_at) };
   }
 
+  cancelInvitation(callerInboxId: string, invitationId: string): InvitationInfoResponse {
+    return this.tx(() => {
+      const row = this.getInvitation(invitationId);
+      if (row.inviter_inbox_id !== callerInboxId) throw new HttpError(403, "Only the inviter can cancel an invitation");
+      if (row.status === "accepted") throw new HttpError(409, "Invitation was already accepted; disconnect the connection instead");
+      if (row.status === "pending") {
+        this.db.prepare("UPDATE invitations SET status = 'cancelled' WHERE id = ?").run(invitationId);
+        row.status = "cancelled";
+      }
+      return { invitationId: row.id, inviterInboxId: row.inviter_inbox_id, status: row.status, expiresAt: this.iso(row.expires_at) };
+    });
+  }
+
   submitHandshake(callerInboxId: string, invitationId: string, req: Partial<HandshakeSubmissionRequest>): HandshakeSubmissionResponse {
     if (req.senderInboxId !== undefined && req.senderInboxId !== callerInboxId) {
       throw new HttpError(403, "senderInboxId does not match the authenticated inbox");
@@ -207,6 +224,7 @@ export class Relay {
           }
         }
         if (invitation.status === "expired") throw new HttpError(410, "Invitation has expired");
+        if (invitation.status === "cancelled") throw new HttpError(410, "Invitation was cancelled");
         if (invitation.status !== "pending") throw new HttpError(409, "Invitation has already been used");
 
         const connectionId = id("conn_");

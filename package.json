@@ -1,6 +1,6 @@
 {
   "name": "musetogether",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Let your Muse talk to theirs: an end-to-end encrypted relay and CLI for Muse-to-Muse messaging.",
   "type": "module",
   "private": true,
