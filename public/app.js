@@ -1,4 +1,4 @@
-// Landing page behavior: theme toggle, rotating name, the Muse chat playback, use-case picker,
+// Landing page behavior: theme toggle, rotating name, the hero phone demo, use-case picker,
 // and the small live demos inside feature cards. Everything is readable without JavaScript;
 // with reduced motion, demos show their final state.
 (() => {
@@ -46,6 +46,21 @@
     });
   });
 
+  // ---------------------------------------------------------------- shrink the demo phones to fit (with or without motion)
+
+  const demoStage = document.querySelector("[data-demo]");
+  if (demoStage) {
+    const fit = () => {
+      const cs = getComputedStyle(demoStage);
+      const inner = demoStage.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+      const cols = cs.gridTemplateColumns.split(" ").length;
+      const z = cols === 1 ? Math.min(0.88, inner / 300) : cols === 2 ? Math.min(1, (inner - parseFloat(cs.columnGap)) / 2 / 300) : 1;
+      demoStage.style.setProperty("--z", z.toFixed(3));
+    };
+    fit();
+    new ResizeObserver(fit).observe(demoStage);
+  }
+
   if (reduce) return;
 
   // ---------------------------------------------------------------- rotating name in the headline
@@ -65,39 +80,232 @@
     }, 2400);
   }
 
-  // ---------------------------------------------------------------- the Muse chat
+  // ---------------------------------------------------------------- the hero demo: you, the relay cloud, Alex
 
-  const chat = document.querySelector("[data-chat]");
-  if (chat) {
-    const steps = [...chat.querySelectorAll("[data-step]")];
+  const stage = document.querySelector("[data-demo]");
+  if (stage) {
+    const muses = {
+      you: "--body:#a4d3f4;--hat:#6f7c50;--knit:#a8592b",
+      them: "--body:#f6bccd;--hat:#2f8f86;--knit:#3d4f7a",
+      sam: "--body:#bfe8cf;--hat:#c2523d;--knit:#e3b341",
+      priya: "--body:#f7d79a;--hat:#5b4aa8;--knit:#6a8f3e"
+    };
+    const sparkColors = ["#9b85ff", "#a4d3f4", "#f6bccd", "#f7d79a"];
+    const $ = (s) => stage.querySelector(s);
+    const acts = [...stage.closest(".demo").querySelectorAll("[data-acts] li")];
+    const steps = [...stage.querySelectorAll("[data-s]")];
+    const pills = [...stage.querySelectorAll(".pill")];
+    const slots = [...stage.querySelectorAll("[data-slot]")];
+    const cloud = $("[data-cloud]");
+    const agree = $(".cloud-agree");
+    const avatar = { you: $('[data-avatar="you"]'), them: $('[data-avatar="them"]') };
+    stage.classList.add("is-live");
+
+    const flyers = {};
+    for (const [name, style] of Object.entries(muses)) {
+      const f = document.createElement("div");
+      f.className = "flyer";
+      f.innerHTML = `<svg class="m" viewBox="0 0 100 100" style="${style}"><use href="#cozy"/></svg><span class="fl-lock"><svg><use href="#i-lock"/></svg></span>`;
+      stage.append(f);
+      flyers[name] = f;
+    }
+
     let run = 0;
-    const typing = document.createElement("div");
-    typing.className = "typing-bubble";
-    typing.setAttribute("aria-hidden", "true");
-    typing.append(document.createElement("i"), document.createElement("i"), document.createElement("i"));
+    let inView = false;
+    class Stop extends Error {}
+    const check = (id) => { if (id !== run) throw new Stop(); };
+    // Waits pause while the demo is off screen or the tab is hidden, so it never plays unseen.
+    const wait = async (ms, id) => {
+      await sleep(ms);
+      while (id === run && (!inView || document.hidden)) await sleep(250);
+      check(id);
+    };
+    const at = (el) => {
+      const r = el.getBoundingClientRect();
+      const s = stage.getBoundingClientRect();
+      return { x: r.left - s.left - stage.clientLeft + r.width / 2, y: r.top - s.top - stage.clientTop + r.height / 2 };
+    };
+    // Muses land on top of the cloud, above its label.
+    const inCloud = () => { const c = at(cloud); return { x: c.x, y: c.y - cloud.offsetHeight * 0.3 }; };
+    const offstage = (dx) => { const c = at($(".sky")); return { x: c.x + dx, y: -60 }; };
+    // On narrow screens only one phone shows at a time (see styles.css).
+    const view = (who) => { stage.dataset.view = who; };
+    const act = (n) => acts.forEach((li, i) => li.classList.toggle("is-on", i === n - 1));
+    const ping = (who) => {
+      const a = avatar[who];
+      a.classList.remove("is-ping");
+      void a.offsetWidth;
+      a.classList.add("is-ping");
+    };
+    const pulse = async (id, ms = 700) => {
+      cloud.classList.add("is-pulse");
+      try { await wait(ms, id); } finally { cloud.classList.remove("is-pulse"); }
+    };
+
+    const spark = (f) => {
+      const p = at(f);
+      const s = document.createElement("span");
+      s.className = "spark";
+      s.style.cssText = `left:${p.x + (Math.random() - 0.5) * 14}px;top:${p.y + (Math.random() - 0.5) * 14}px;--c:${sparkColors[(Math.random() * sparkColors.length) | 0]}`;
+      s.addEventListener("animationend", () => s.remove());
+      stage.append(s);
+    };
+    const fly = (f, from, to, { lift = 100, ms = 1150, mail = false } = {}) => new Promise((resolve) => {
+      const c = { x: (from.x + to.x) / 2, y: Math.min(from.y, to.y) - lift };
+      f.getAnimations().forEach((a) => a.cancel());
+      f.style.offsetPath = `path("M ${from.x} ${from.y} Q ${c.x} ${c.y} ${to.x} ${to.y}")`;
+      f.classList.toggle("has-mail", mail);
+      f.classList.add("is-on", "is-flying");
+      const a = f.animate([{ offsetDistance: "0%" }, { offsetDistance: "100%" }], { duration: ms, easing: "cubic-bezier(0.45, 0, 0.25, 1)", fill: "forwards" });
+      const trail = setInterval(() => spark(f), 50);
+      const done = () => { clearInterval(trail); f.classList.remove("is-flying"); resolve(); };
+      a.onfinish = done;
+      a.oncancel = done;
+    });
+    const land = (...fs) => fs.forEach((f) => f.classList.remove("is-on", "has-mail"));
+
+    const type = async (who, text, id) => {
+      const box = $(`[data-composer="${who}"]`);
+      const typed = box.querySelector(".ph-typed");
+      for (const ch of text) {
+        typed.textContent += ch;
+        box.classList.add("has-text");
+        await wait(30 + Math.random() * 45, id);
+      }
+      await wait(350, id);
+      const send = box.querySelector(".ph-send");
+      send.classList.add("is-press");
+      await wait(150, id);
+      send.classList.remove("is-press");
+      typed.textContent = "";
+      box.classList.remove("has-text");
+    };
+    const show = async (s, id, think = 0) => {
+      const el = stage.querySelector(`[data-s="${s}"]`);
+      if (think) {
+        const dots = document.createElement("div");
+        dots.className = "typing-bubble";
+        dots.append(document.createElement("i"), document.createElement("i"), document.createElement("i"));
+        el.before(dots);
+        try { await wait(think, id); } finally { dots.remove(); }
+      }
+      el.classList.add("is-in");
+      await wait(400, id);
+    };
+
+    const reset = () => {
+      steps.forEach((s) => s.classList.remove("is-in"));
+      pills.forEach((p) => p.classList.remove("is-in"));
+      agree.classList.remove("is-in");
+      stage.classList.remove("is-group");
+      cloud.classList.remove("is-pulse");
+      stage.querySelectorAll(".typing-bubble, .spark").forEach((e) => e.remove());
+      stage.querySelectorAll(".ph-typed").forEach((e) => { e.textContent = ""; });
+      stage.querySelectorAll(".has-text").forEach((e) => e.classList.remove("has-text"));
+      for (const f of Object.values(flyers)) {
+        f.getAnimations().forEach((a) => a.cancel());
+        land(f);
+      }
+      act(0);
+      view("you");
+    };
+
     const play = async () => {
       const id = ++run;
-      chat.classList.add("is-live");
-      steps.forEach((s) => s.classList.remove("is-in"));
-      typing.remove();
-      await sleep(500);
-      for (const step of steps) {
-        if (id !== run) return;
-        const mine = step.classList.contains("me");
-        if (!mine) {
-          chat.insertBefore(typing, step);
-          await sleep(step.classList.contains("relay-card") ? 1500 : 1000);
-          if (id !== run) return;
-          typing.remove();
-        } else {
-          await sleep(650);
+      reset();
+      try {
+        await wait(700, id);
+
+        // 1. You ask your Muse.
+        act(1);
+        await type("you", "Can you set up dinner with Alex this week?", id);
+        await show("y1", id);
+        await show("y2", id, 900);
+
+        // 2. Your Muse flies through the relay, carrying a sealed message.
+        act(2);
+        ping("you");
+        await fly(flyers.you, at(avatar.you), inCloud(), { mail: true });
+        check(id);
+        view("them");
+        await pulse(id);
+        await fly(flyers.you, inCloud(), at(avatar.them), { mail: true });
+        check(id);
+        land(flyers.you);
+        ping("them");
+
+        // 3. Alex's Muse checks with Alex, then answers.
+        act(3);
+        await show("t1", id, 900);
+        await wait(600, id);
+        await type("them", "Yes! Thursday works", id);
+        await show("t2", id);
+        await show("t3", id, 800);
+
+        act(2);
+        ping("them");
+        await fly(flyers.them, at(avatar.them), inCloud(), { mail: true });
+        check(id);
+        view("you");
+        await pulse(id, 600);
+        await fly(flyers.them, inCloud(), at(avatar.you), { mail: true });
+        check(id);
+        land(flyers.them);
+        ping("you");
+        act(1);
+        await show("y3", id, 800);
+        await wait(1800, id);
+
+        // 4. A group: four Muses meet in the relay and work it out together.
+        await type("you", "Now plan Sam's birthday with everyone", id);
+        await show("y4", id);
+        await show("y5", id, 800);
+        act(4);
+        stage.classList.add("is-group");
+        ping("you");
+        ping("them");
+        const away = [offstage(-150), offstage(150)];
+        await Promise.all([
+          fly(flyers.you, at(avatar.you), at(slots[0]), { ms: 1300 }),
+          sleep(200).then(() => fly(flyers.them, at(avatar.them), at(slots[1]), { ms: 1300 })),
+          sleep(400).then(() => fly(flyers.sam, away[0], at(slots[2]), { ms: 1300, lift: 10 })),
+          sleep(550).then(() => fly(flyers.priya, away[1], at(slots[3]), { ms: 1300, lift: 10 }))
+        ]);
+        check(id);
+        for (const p of pills) {
+          p.classList.add("is-in");
+          await wait(1050, id);
         }
-        step.classList.add("is-in");
-        await sleep(450);
+        agree.classList.add("is-in");
+        await pulse(id, 1400);
+        pills.forEach((p) => p.classList.remove("is-in"));
+        agree.classList.remove("is-in");
+        stage.classList.remove("is-group");
+        await Promise.all([
+          fly(flyers.you, at(slots[0]), at(avatar.you)),
+          fly(flyers.them, at(slots[1]), at(avatar.them)),
+          fly(flyers.sam, at(slots[2]), away[0], { lift: 10 }),
+          fly(flyers.priya, at(slots[3]), away[1], { lift: 10 })
+        ]);
+        check(id);
+        land(...Object.values(flyers));
+        ping("you");
+        ping("them");
+        await Promise.all([show("y6", id, 900), show("t4", id, 1300)]);
+
+        await wait(7000, id);
+        play();
+      } catch (err) {
+        if (!(err instanceof Stop)) throw err;
       }
     };
-    onVisible(chat, play, 0.4);
-    document.querySelector("[data-replay]")?.addEventListener("click", play);
+
+    let started = false;
+    new IntersectionObserver(([e]) => {
+      inView = e.isIntersecting;
+      if (inView && !started) { started = true; play(); }
+    }, { threshold: 0.25 }).observe(stage);
+    stage.closest(".demo").querySelector("[data-replay]")?.addEventListener("click", play);
   }
 
   // ---------------------------------------------------------------- availability week
@@ -151,11 +359,11 @@
 
   // ---------------------------------------------------------------- relay sees noise
 
-  const cipher = document.querySelector("[data-cipher]");
-  if (cipher) {
-    const A = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
-    const noise = () => Array.from({ length: 20 }, () => A[(Math.random() * 64) | 0]).join("");
-    onVisible(cipher, () => setInterval(() => { if (!document.hidden) cipher.textContent = noise(); }, 1500));
+  const A = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+  for (const cipher of document.querySelectorAll("[data-cipher], [data-cipher2]")) {
+    const len = cipher.textContent.length;
+    const noise = () => Array.from({ length: len }, () => A[(Math.random() * 64) | 0]).join("");
+    onVisible(cipher, () => setInterval(() => { if (!document.hidden) cipher.textContent = noise(); }, cipher.hasAttribute("data-cipher2") ? 700 : 1500));
   }
 
   // ---------------------------------------------------------------- terminal types itself
