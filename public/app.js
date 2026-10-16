@@ -124,10 +124,21 @@
       check(id);
     };
     const jitter = (ms) => ms * (0.8 + Math.random() * 0.4);
+    // Where an element sits in the stage, as a centre point and a width. An avatar is placed from its
+    // phone's box rather than measured directly: it sits inside a CSS-zoomed screen, and Safari reports
+    // zoomed elements' positions differently from other browsers.
+    const AVATAR_Y = 81; // avatar centre from the top of a 300px-wide phone: bezel 9 + status bar 38 + padding 4 + half of 60
     const at = (el) => {
-      const r = el.getBoundingClientRect();
       const s = stage.getBoundingClientRect();
-      return { x: r.left - s.left - stage.clientLeft + r.width / 2, y: r.top - s.top - stage.clientTop + r.height / 2 };
+      const ox = s.left + stage.clientLeft;
+      const oy = s.top + stage.clientTop;
+      if (el.hasAttribute("data-avatar")) {
+        const r = el.closest(".phone").getBoundingClientRect();
+        const k = r.width / 300;
+        return { x: r.left - ox + r.width / 2, y: r.top - oy + AVATAR_Y * k, w: 60 * k };
+      }
+      const r = el.getBoundingClientRect();
+      return { x: r.left - ox + r.width / 2, y: r.top - oy + r.height / 2, w: r.width };
     };
     // Which avatar a Muse lives in right now: the big phones, or the small ones that pop in for the group
     // (narrower screens swap the big phones for all four small ones).
@@ -161,13 +172,13 @@
     const fly = (f, fromEl, toEl, { lift = 80, ms = 1150 } = {}) => new Promise((resolve) => {
       const from = at(fromEl);
       const to = at(toEl);
-      const size = (el) => Math.min(1.1, Math.max(0.35, el.getBoundingClientRect().width / f.offsetWidth));
+      const size = (p) => Math.min(1.1, Math.max(0.35, p.w / f.offsetWidth));
       const c = { x: (from.x + to.x) / 2, y: Math.min(from.y, to.y) - lift };
       f.getAnimations().forEach((a) => a.cancel());
       f.style.offsetPath = `path("M ${from.x} ${from.y} Q ${c.x} ${c.y} ${to.x} ${to.y}")`;
       f.classList.add("is-on", "is-flying");
       const a = f.animate(
-        [{ offsetDistance: "0%", scale: size(fromEl) }, { offsetDistance: "100%", scale: size(toEl) }],
+        [{ offsetDistance: "0%", scale: size(from) }, { offsetDistance: "100%", scale: size(to) }],
         { duration: ms, easing: "cubic-bezier(0.45, 0, 0.25, 1)", fill: "forwards" }
       );
       const trail = setInterval(() => spark(f), 50);
@@ -419,10 +430,10 @@
   // ---------------------------------------------------------------- relay sees noise
 
   const A = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
-  for (const cipher of document.querySelectorAll("[data-cipher], [data-cipher2]")) {
+  for (const cipher of document.querySelectorAll("[data-cipher]")) {
     const len = cipher.textContent.length;
     const noise = () => Array.from({ length: len }, () => A[(Math.random() * 64) | 0]).join("");
-    onVisible(cipher, () => setInterval(() => { if (!document.hidden) cipher.textContent = noise(); }, cipher.hasAttribute("data-cipher2") ? 700 : 1500));
+    onVisible(cipher, () => setInterval(() => { if (!document.hidden) cipher.textContent = noise(); }, 1500));
   }
 
   // ---------------------------------------------------------------- terminal types itself

@@ -175,9 +175,12 @@ p { margin: 0; }
 :root[data-theme="dark"] .stage { --sky: #0d0b17; --sky-glow: #1d1840; --cloud: #3a3360; --cloud-ink: #d6d1ee; }
 
 /* Phones are always dark, like the Muse app. */
-.phone { width: 300px; zoom: var(--z, 1); justify-self: center; }
+/* Zoom goes on the phone's contents, not the phone, so the phone box itself measures the same in every
+   browser (app.js places the flying Muses from it). */
+.phone { width: fit-content; justify-self: center; }
+.phone > * { zoom: var(--z, 1); }
 .screen {
-  position: relative; height: 620px; display: flex; flex-direction: column; overflow: hidden;
+  position: relative; width: 300px; height: 620px; display: flex; flex-direction: column; overflow: hidden;
   background: #000; color: #f2f2f4; border: 9px solid #1c1c1f; border-radius: 48px;
   box-shadow: 0 0 0 1.5px #3b3b42, var(--shadow-lg);
 }
@@ -216,16 +219,16 @@ p { margin: 0; }
 .b-receipt { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; color: #6ee7a7; }
 .b-receipt svg { width: 12px; height: 12px; }
 .ph-chat .typing-bubble { flex: none; align-self: flex-start; display: inline-flex; gap: 4px; padding: 12px 14px; border-radius: 20px; background: #262629; }
-.ph-composer { display: flex; align-items: center; gap: 10px; min-height: 46px; margin: 4px 12px 8px; padding: 9px 10px 9px 14px; border-radius: 999px; background: #111113; border: 1px solid #2c2c31; color: #8d8d96; }
+/* The message box grows a line at a time as text wraps, like a real messaging app. */
+.ph-composer { display: flex; align-items: flex-end; gap: 10px; min-height: 46px; margin: 4px 12px 8px; padding: 12px 10px 12px 14px; border-radius: 23px; background: #111113; border: 1px solid #2c2c31; color: #8d8d96; }
 .ph-composer > svg, .ph-mic svg { width: 20px; height: 20px; }
-.ph-input { flex: 1; min-width: 0; display: flex; overflow: hidden; white-space: nowrap; font-size: 14px; }
+.ph-input { flex: 1; min-width: 0; font-size: 14px; line-height: 20px; overflow-wrap: anywhere; }
 .ph-typed { color: #f2f2f4; }
 .ph-typed:not(:empty)::after { content: ""; display: inline-block; width: 1.5px; height: 1.05em; margin-left: 1px; vertical-align: -2px; background: #9b85ff; animation: caret 1s steps(1) infinite; }
 @keyframes caret { 50% { opacity: 0; } }
-.ph-send { display: none; place-items: center; width: 28px; height: 28px; margin: -4px 0; border-radius: 50%; background: #fff; color: #000; transition: scale 150ms; }
+.ph-send { display: none; place-items: center; width: 28px; height: 28px; margin: -4px 0 -4px; border-radius: 50%; background: #fff; color: #000; transition: scale 150ms; }
 .ph-send svg { width: 16px; height: 16px; }
 .ph-send.is-press { scale: 0.82; }
-.ph-composer.has-text .ph-input { justify-content: flex-end; }
 .ph-composer.has-text .ph-ph, .ph-composer.has-text .ph-mic { display: none; }
 .ph-composer.has-text .ph-send { display: grid; }
 .ph-tabs { display: grid; grid-template-columns: repeat(5, 1fr); margin: 0 10px 10px; padding: 5px; border-radius: 999px; background: #1a1a1d; border: 1px solid #27272b; }
@@ -238,7 +241,7 @@ p { margin: 0; }
 /* Friends' phones that pop in when the whole group plans together. On wide screens only Sam's and
    Priya's appear, under the cloud; on narrower ones all four replace the big phones. */
 .crowd { position: absolute; z-index: 2; left: 50%; bottom: 32px; translate: -50% 0; display: flex; gap: 22px; }
-.mini { zoom: var(--zx, 0.42); }
+.mini > * { zoom: var(--zx, 0.42); }
 .mini .ph-label { margin-top: 18px; font-size: 30px; }
 .mini-you, .mini-them { display: none; }
 .crowd .phone { opacity: 0; scale: 0.5; transition: opacity 350ms ease, scale 550ms cubic-bezier(0.3, 1.5, 0.5, 1); }
@@ -262,9 +265,8 @@ p { margin: 0; }
 .stage.is-group .cloud { bottom: 40%; width: min(100%, 240px); }
 .cloud > svg { display: block; width: 100%; height: auto; fill: var(--cloud); filter: drop-shadow(0 18px 28px rgb(80 60 180 / 0.18)); transition: scale 400ms cubic-bezier(0.3, 1.6, 0.5, 1), filter 400ms; }
 .cloud.is-pulse > svg { scale: 1.07; filter: drop-shadow(0 0 30px rgb(124 92 255 / 0.6)); }
-.cloud-label { position: absolute; left: 50%; top: 56%; translate: -50% -50%; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; font-size: 12.5px; font-weight: 600; color: var(--cloud-ink); }
+.cloud-label { position: absolute; left: 50%; top: 62%; translate: -50% -50%; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; font-size: 12.5px; font-weight: 600; color: var(--cloud-ink); }
 .cloud-label svg { width: 14px; height: 14px; color: var(--brand); }
-.cloud-cipher { position: absolute; left: 50%; top: 72%; translate: -50% -50%; font: 11px var(--mono); letter-spacing: 0.04em; white-space: nowrap; color: var(--faint); }
 .cloud-agree { position: absolute; left: 50%; top: 94%; translate: -50% -50%; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; padding: 5px 11px; border-radius: 999px; background: var(--ok); color: #fff; font-size: 12px; font-weight: 600; transition: opacity 300ms, scale 400ms cubic-bezier(0.3, 1.6, 0.5, 1); }
 .cloud-agree svg { width: 13px; height: 13px; }
 .links { position: absolute; left: 24%; right: 24%; width: 52%; fill: none; stroke: var(--brand); stroke-width: 1.5; stroke-dasharray: 4 6; opacity: 0.45; transition: opacity 500ms; animation: dash 1.4s linear infinite; }
