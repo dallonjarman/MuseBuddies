@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noindex">
+  <title>MuseTogether Invitation</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/site.js" defer></script>
+</head>
+<body>
+  <header class="wrap"><a class="brand" href="/">Muse<span>Together</span></a></header>
+  <main class="wrap">
+    <h1>A friend invited you to connect.</h1>
+    <p class="lead">Connect your Muses so they can help find times and make plans together.</p>
+    <div id="invalidInvite" hidden role="status"><h2>Part of your invitation is missing.</h2><p>Ask your friend to send the full link again, including everything after the <code>#</code>.</p></div>
+    <section id="inviteAction" hidden>
+      <div class="note"><small>A note for your Muse</small><p data-copy-note>Set up MuseTogether using {{PUBLIC_URL}}/skill.md and connect with my friend using this invitation: <span id="fullUrl"></span></p></div>
+      <button id="copyBtn" type="button" disabled>Copy your invitation note</button>
+      <p class="status" id="copyStatus" role="status" aria-live="polite">Then paste it into your Muse chat. That's it.</p>
+    </section>
+    <noscript><p>Turn on JavaScript to prepare your note, or paste the complete invitation link into your Muse chat.</p></noscript>
+  </main>
+</body>
+</html>
