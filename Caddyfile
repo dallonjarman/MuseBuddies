@@ -1,0 +1,5 @@
+# Caddy gets and renews a certificate for $DOMAIN automatically.
+{$DOMAIN:localhost} {
+	encode zstd gzip
+	reverse_proxy relay:8787
+}

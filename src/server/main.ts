@@ -77,8 +77,9 @@ function sendJson(res: http.ServerResponse, status: number, body: unknown): void
 function serveStatic(res: http.ServerResponse, pathname: string, publicUrl: string): boolean {
   let file = pathname === "/" ? "index.html" : pathname.slice(1);
   if (/^invite\/[^/]+$/.test(file)) file = "invite.html";
-  const target = path.resolve(publicDir, file);
-  if (!target.startsWith(publicDir + path.sep) || !fs.existsSync(target) || !fs.statSync(target).isFile()) return false;
+  // The self-hosting guide lives at the repository root so GitHub renders it too.
+  const target = file === "self-host.md" ? path.join(rootDir, "self-host.md") : path.resolve(publicDir, file);
+  if ((file !== "self-host.md" && !target.startsWith(publicDir + path.sep)) || !fs.existsSync(target) || !fs.statSync(target).isFile()) return false;
   const ext = path.extname(target);
   let body: Buffer | string = fs.readFileSync(target);
   if ([".html", ".md", ".sh", ".js"].includes(ext)) body = body.toString("utf8").replaceAll("{{PUBLIC_URL}}", publicUrl);

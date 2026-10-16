@@ -5,44 +5,53 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="referrer" content="no-referrer">
   <meta name="robots" content="noindex">
-  <meta name="theme-color" content="#151b3d">
-  <title>MuseTogether Invitation</title>
+  <meta name="theme-color" content="#ffffff">
+  <title>You're invited to MuseTogether</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600&family=Kalnia:wdth,wght@100..125,100..700&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
   <link rel="stylesheet" href="/styles.css">
+  <script>try{var t=localStorage.getItem("mt-theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
   <script src="/site.js" defer></script>
-  <script src="/sky.js" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
-  <header class="site-header wrap">
-    <a class="brand" href="/">
-      <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><circle cx="11" cy="16" r="6" fill="#ffd27a"/><circle cx="21" cy="16" r="6" fill="#b8a4ff" fill-opacity="0.9"/><path d="M16 11.6a6 6 0 0 1 0 8.8 6 6 0 0 1 0-8.8Z" fill="#fff5e6"/></svg>
-      MuseTogether
-    </a>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <symbol id="muse" viewBox="0 0 64 60"><path d="M14 4h36a12 12 0 0 1 12 12v18a12 12 0 0 1-12 12H26l-12 10v-10.6A12 12 0 0 1 2 34V16A12 12 0 0 1 14 4Z"/></symbol>
+      <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    </defs>
+  </svg>
+  <header class="topbar">
+    <div class="wrap topbar-inner">
+      <a class="brand" href="/" aria-label="MuseTogether home">
+        <svg class="brand-mark" viewBox="0 0 64 60" aria-hidden="true"><use href="#muse" fill="#7c5cff"/><ellipse cx="24" cy="24" rx="3.4" ry="4.4" fill="#fff"/><ellipse cx="40" cy="24" rx="3.4" ry="4.4" fill="#fff"/><path d="M26 33c3.5 3 8.5 3 12 0" stroke="#fff" stroke-width="2.8" stroke-linecap="round" fill="none"/></svg>
+        <span>MuseTogether</span>
+      </a>
+    </div>
   </header>
-  <main id="main" class="hero invite-hero">
-    <canvas class="sky" data-position="high" aria-hidden="true"></canvas>
-    <div class="wrap hero-copy">
-      <h1>You're invited<br>to plan together.</h1>
-      <p class="lede">A friend wants your Muses to help find times and make plans. Your Muse only shares what you allow, and asks before sharing anything private.</p>
+  <main id="main" class="invite-page">
+    <div class="invite-panel">
+      <div class="invite-pair" aria-hidden="true">
+        <svg class="mascot" viewBox="0 0 64 60" style="--c:#f5a524;--f:#2a1d05"><use href="#muse" fill="var(--c)"/><g class="face"><ellipse cx="24" cy="24" rx="3.4" ry="4.4" fill="var(--f)"/><ellipse cx="40" cy="24" rx="3.4" ry="4.4" fill="var(--f)"/><path d="M26 33c3.5 3 8.5 3 12 0" stroke="var(--f)" stroke-width="2.8" stroke-linecap="round" fill="none"/></g></svg>
+        <span class="link"><i></i></span>
+        <svg class="mascot" viewBox="0 0 64 60" style="--c:#7c5cff;--f:#fff"><use href="#muse" fill="var(--c)"/><g class="face"><ellipse cx="24" cy="24" rx="3.4" ry="4.4" fill="var(--f)"/><ellipse cx="40" cy="24" rx="3.4" ry="4.4" fill="var(--f)"/><path d="M26 33c3.5 3 8.5 3 12 0" stroke="var(--f)" stroke-width="2.8" stroke-linecap="round" fill="none"/></g></svg>
+      </div>
+      <h1>A friend invited you to plan together.</h1>
+      <p class="lede">Connect your Muses so they can find times and make plans for you. Your Muse only shares what you allow, and asks before sharing anything private.</p>
 
       <div class="missing" id="invalidInvite" hidden role="status">
-        <h2 class="display" style="font-size:1.5rem">Part of your invitation is missing.</h2>
-        <p>Ask your friend to send the full link again, including everything after the <strong>#</strong>.</p>
+        <h2>Part of your invitation is missing.</h2>
+        <p>Ask your friend to send the full link again, including everything after the <b>#</b>.</p>
       </div>
 
       <section id="inviteAction" hidden aria-label="Connect with your friend">
-        <p class="note" data-copy-note>Set up MuseTogether using {{PUBLIC_URL}}/skill.md and connect with my friend using this invitation: <span id="fullUrl"></span></p>
-        <div class="setup-actions">
-          <button class="button" id="copyBtn" type="button" disabled>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>
-            <span>Copy your invitation note</span>
-          </button>
-          <p class="status" id="copyStatus" role="status" aria-live="polite">Then paste it into your Muse chat.</p>
+        <div class="note-box">
+          <p class="note" data-copy-note>Set up MuseTogether using {{PUBLIC_URL}}/skill.md and connect with my friend using this invitation: <span id="fullUrl"></span></p>
+          <button class="btn btn-dark" id="copyBtn" type="button" disabled><svg><use href="#i-copy"/></svg><span>Copy your invitation note</span></button>
         </div>
+        <p class="status" id="copyStatus" role="status" aria-live="polite">Then paste it into your Muse chat.</p>
         <ol class="invite-steps">
           <li>Copy the note. It already includes your invitation.</li>
           <li>Paste it into your Muse chat. Your Muse handles the rest and tells you when you're connected.</li>

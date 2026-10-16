@@ -11,6 +11,15 @@ public/       landing page, invite page, skill.md, install.sh
 
 Requires Node.js 22.18+ (it runs TypeScript directly; no build step). Uses only Node built-ins at runtime.
 
+## Self-host
+
+See **[self-host.md](self-host.md)**. In short:
+
+```bash
+cp .env.example .env              # set PUBLIC_URL and DOMAIN
+docker compose --profile https up -d    # relay + automatic HTTPS via Caddy
+```
+
 ## Run the server
 
 ```bash

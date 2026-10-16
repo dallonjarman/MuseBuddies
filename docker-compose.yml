@@ -1,0 +1,53 @@
+# MuseTogether relay. Quick start:
+#   cp .env.example .env    # set PUBLIC_URL (and DOMAIN for HTTPS)
+#   docker compose --profile https up -d    # relay + Caddy with automatic HTTPS
+#   docker compose up -d                    # relay only, on 127.0.0.1:8787 (bring your own proxy)
+# See self-host.md for details.
+
+services:
+  relay:
+    # Builds from this repo by default. To use the published image instead, set
+    # RELAY_IMAGE=ghcr.io/dallonjarman/musetogether:latest and run `docker compose pull`.
+    image: ${RELAY_IMAGE:-musetogether-relay:local}
+    build: .
+    restart: unless-stopped
+    environment:
+      PUBLIC_URL: ${PUBLIC_URL:?Set PUBLIC_URL in .env, e.g. https://muse.example.com}
+      DATABASE_PATH: /data/relay.db
+      # Use X-Forwarded-For for per-IP rate limits. Safe because the port below is only
+      # reachable from this machine (or from Caddy on the compose network).
+      TRUST_PROXY: ${TRUST_PROXY:-1}
+    volumes:
+      - relay-data:/data
+    ports:
+      - "${RELAY_BIND:-127.0.0.1}:${RELAY_PORT:-8787}:8787"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8787/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  caddy:
+    image: caddy:2.8
+    profiles: ["https"]
+    restart: unless-stopped
+    depends_on:
+      relay:
+        condition: service_healthy
+    environment:
+      # Set DOMAIN in .env for a real certificate; without it Caddy only serves localhost.
+      DOMAIN: ${DOMAIN:-}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  relay-data:
+  caddy-data:
+  caddy-config:
