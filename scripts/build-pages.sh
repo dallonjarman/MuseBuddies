@@ -14,7 +14,7 @@ rm -rf "$out"
 mkdir -p "$out"
 cp -R "$root/public/." "$out/"
 rm -f "$out/invite.html"
-cp "$root/self-host.md" "$out/self-host.md"
+cp "$root/self-host.md" "$root/docker-compose.yml" "$out/"
 (cd "$root" && tar --owner=0 --group=0 -czf "$(cd "$out" && pwd)/client.tar.gz" package.json src/client src/shared)
 
 escaped="$(printf '%s' "$relay_url" | sed 's/[&|\\]/\\&/g')"

@@ -83,6 +83,7 @@ jobs:
           curl -fsS http://localhost:8787/skill.md | grep -q "http://localhost:8787/install.sh"
           curl -fsS -o /dev/null http://localhost:8787/client.tar.gz
           curl -fsS -o /dev/null http://localhost:8787/self-host.md
+          curl -fsSI http://localhost:8787/docker-compose.yml | grep -qi '^content-disposition: attachment'
           curl -fsS -X POST http://localhost:8787/v1/inboxes | grep -q '"inboxId"'
           # The relay must not run as root.
           test "$(docker exec smoke sh -c 'grep ^Uid: /proc/1/status | cut -f2')" != 0
