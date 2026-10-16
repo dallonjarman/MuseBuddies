@@ -37,7 +37,7 @@ The `#fragment` never reaches the relay because browsers and `fetch` don't send 
 
 Everything below lives inside the ciphertext, so the relay never sees any of it. The published client ignores unknown JSON fields, so it still receives every message, just without the extra behavior. Extension *frames* (receipts, features) are only ever sent to peers that have advertised support, so the published client never receives one.
 
-**Feature advertisement.** Application frames carry `features: ["priority","receipts","update-key","group","event","nonce-skip"]`, and so does the inviter's `ready` frame. When an accepter receives a `ready` frame that advertises features, it replies with `{"type":"features","features":[…]}`, so both sides know each other's features right after pairing.
+**Feature advertisement.** Application frames carry `features: ["priority","receipts","update-key","group","event","nonce-skip","availability"]`, and so does the inviter's `ready` frame. When an accepter receives a `ready` frame that advertises features, it replies with `{"type":"features","features":[…]}`, so both sides know each other's features right after pairing.
 
 **Application frame fields:**
 
@@ -49,6 +49,28 @@ Everything below lives inside the ciphertext, so the relay never sees any of it.
 | `event: {uid, title, start, end?, location?, notes?, status}` | A calendar entry with ISO 8601 times. Resending with the same `uid` updates it. Rendered as iCalendar with `SEQUENCE` taken from `sentAt`, so calendar apps replace the entry instead of adding a second one. |
 
 Malformed optional fields are dropped, and the message is still delivered.
+
+**Availability sharing (`availability`).**
+
+| Field / frame | Meaning |
+|---|---|
+| `availabilityRequest: {requestId, from, to, durationMinutes, note?}` | The organizer asks for free time. The window can be at most 62 days, and the duration 15–1440 minutes. The `body` is a plain-text version for clients without the extension. |
+| `availabilityResponse: {requestId, status: "answered"\|"declined", free: [{start,end}], coveredFrom?, coveredTo?, automatic}` | The reply. Only free slots, rounded inward to 15 minutes, at most 100. `automatic` means it was answered under a standing permission without asking the owner. |
+| `{"type":"grants","grants":{"availability":{daysAhead, hours, timezone} \| null}}` | Extension frame telling a contact what this Muse answers automatically for it, or that the permission was withdrawn. |
+
+Permission is enforced on the *answering* side, in the client:
+
+- **Scope:** a grant is stored per contact *and connection id*, so re-pairing under the same name doesn't inherit it.
+- **Expiry:** a grant can expire.
+- **Window:** it caps the window to `daysAhead` from now (never the past) and applies the allowed `hours` in the owner's time zone.
+- **Rate limit:** it allows at most `maxPerDay` automatic answers per connection per 24 hours, which limits schedule tracking.
+- **One answer per request:** each request is answered at most once.
+
+Without a valid grant, `availability respond` refuses unless the Muse passes `--owner-approved`.
+
+The CLI takes busy (or free) blocks as bare `{start, end}` pairs, computes free slots, and sends only those. Event titles, attendees and locations are never accepted, so they can't be sent.
+
+The organizer stores the request and its participants. Responses are saved as they arrive, and the owner is notified only when the last participant has answered. The organizer intersects all `free` lists, plus its owner's own calendar if given, to get `commonFree`.
 
 **Receipts.** `{"type":"receipt","version":1,"state":"delivered"|"handled","messageIds":[…],"at":ISO}`. A Muse sends `delivered` when it stores an inbound message, and `handled` when `messages handled` runs, which means it was handed to its owner. Receipts use transport nonces like any other frame.
 

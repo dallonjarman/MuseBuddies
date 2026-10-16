@@ -82,7 +82,7 @@ export type Priority = "normal" | "urgent";
  * peers only send extension frames (receipts) to Muses that can process them.
  * Every extension field is optional and ignored by clients that predate it.
  */
-export const FEATURES = ["priority", "receipts", "update-key", "group", "event", "nonce-skip"] as const;
+export const FEATURES = ["priority", "receipts", "update-key", "group", "event", "nonce-skip", "availability"] as const;
 export type Feature = (typeof FEATURES)[number];
 
 export interface GroupInfo {
@@ -107,6 +107,41 @@ export interface PlanEvent {
   status: PlanEventStatus;
 }
 
+export interface TimeSlot {
+  start: string;
+  end: string;
+}
+
+/** Organizer -> participant: "when is your owner free?" */
+export interface AvailabilityRequest {
+  requestId: string;
+  /** Window to search, ISO 8601. */
+  from: string;
+  to: string;
+  durationMinutes: number;
+  note?: string;
+}
+
+/**
+ * Participant -> organizer. Carries only free slots (never busy blocks or event details),
+ * rounded inward to 15 minutes.
+ */
+export interface AvailabilityResponse {
+  requestId: string;
+  status: "answered" | "declined";
+  free: TimeSlot[];
+  /** The window actually covered, which may be narrower than requested. */
+  coveredFrom?: string;
+  coveredTo?: string;
+  /** True when answered under a standing permission, without asking the owner. */
+  automatic: boolean;
+}
+
+/** What a participant lets one contact's Muse do without asking. Sent so organizers know what to expect. */
+export interface SharingGrants {
+  availability: { daysAhead: number; hours: string | null; timezone: string } | null;
+}
+
 /** Plaintext carried inside every encrypted application frame. */
 export interface ApplicationPayload {
   version: 1;
@@ -123,6 +158,14 @@ export interface ApplicationPayload {
   updateKey?: string;
   group?: GroupInfo;
   event?: PlanEvent;
+  availabilityRequest?: AvailabilityRequest;
+  availabilityResponse?: AvailabilityResponse;
+}
+
+/** Extension frame telling a contact what this Muse will share with it automatically. */
+export interface GrantsFrame {
+  type: "grants";
+  grants: SharingGrants;
 }
 
 /** First transport frame from the responder (inviter). `features` is an extension. */
@@ -231,14 +274,76 @@ export function validateApplicationPayload(raw: unknown): ApplicationPayload {
   if (g && shortString(g.id, 100) && shortString(g.name, 200) && Number.isInteger(g.size) && (g.size as number) >= 2 && (g.size as number) <= 100) {
     payload.group = { id: g.id, name: g.name, size: g.size as number };
   }
-  if (o.event !== undefined) {
+  const optional = <T>(value: unknown, validate: (v: unknown) => T): T | undefined => {
+    if (value === undefined) return undefined;
     try {
-      payload.event = validatePlanEvent(o.event);
+      return validate(value);
     } catch {
-      // drop a malformed attachment, keep the message
+      return undefined; // drop a malformed attachment, keep the message
     }
-  }
+  };
+  const event = optional(o.event, validatePlanEvent);
+  if (event) payload.event = event;
+  const request = optional(o.availabilityRequest, validateAvailabilityRequest);
+  if (request) payload.availabilityRequest = request;
+  const response = optional(o.availabilityResponse, validateAvailabilityResponse);
+  if (response) payload.availabilityResponse = response;
   return payload;
+}
+
+const MAX_SLOTS = 200;
+
+function validateSlots(raw: unknown): TimeSlot[] {
+  if (!Array.isArray(raw) || raw.length > MAX_SLOTS) throw new Error("slots must be an array");
+  return raw.map((x) => {
+    const o = x as Record<string, unknown>;
+    if (!isTimestamp(o?.start) || !isTimestamp(o?.end) || Date.parse(o.end) <= Date.parse(o.start)) throw new Error("Invalid slot");
+    return { start: new Date(o.start).toISOString(), end: new Date(o.end).toISOString() };
+  });
+}
+
+export function validateAvailabilityRequest(raw: unknown): AvailabilityRequest {
+  const o = raw as Record<string, unknown> | null;
+  if (typeof o !== "object" || o === null) throw new Error("availabilityRequest must be an object");
+  if (!shortString(o.requestId, 100)) throw new Error("requestId is required");
+  if (!isTimestamp(o.from) || !isTimestamp(o.to) || Date.parse(o.to) <= Date.parse(o.from)) throw new Error("from/to must be ISO timestamps with to after from");
+  if (Date.parse(o.to) - Date.parse(o.from) > 62 * 86_400_000) throw new Error("Availability window can be at most 62 days");
+  const d = o.durationMinutes;
+  if (typeof d !== "number" || !Number.isInteger(d) || d < 15 || d > 24 * 60) throw new Error("durationMinutes must be 15..1440");
+  return {
+    requestId: o.requestId,
+    from: new Date(o.from).toISOString(),
+    to: new Date(o.to).toISOString(),
+    durationMinutes: d,
+    ...(shortString(o.note) ? { note: o.note } : {})
+  };
+}
+
+export function validateAvailabilityResponse(raw: unknown): AvailabilityResponse {
+  const o = raw as Record<string, unknown> | null;
+  if (typeof o !== "object" || o === null) throw new Error("availabilityResponse must be an object");
+  if (!shortString(o.requestId, 100)) throw new Error("requestId is required");
+  if (o.status !== "answered" && o.status !== "declined") throw new Error("Invalid availability status");
+  return {
+    requestId: o.requestId,
+    status: o.status,
+    free: o.status === "answered" ? validateSlots(o.free) : [],
+    ...(isTimestamp(o.coveredFrom) ? { coveredFrom: o.coveredFrom } : {}),
+    ...(isTimestamp(o.coveredTo) ? { coveredTo: o.coveredTo } : {}),
+    automatic: o.automatic === true
+  };
+}
+
+export function validateGrants(raw: unknown): SharingGrants {
+  const a = (raw as { availability?: Record<string, unknown> | null } | null)?.availability;
+  if (!a) return { availability: null };
+  return {
+    availability: {
+      daysAhead: Number.isInteger(a.daysAhead) ? Math.min(Math.max(a.daysAhead as number, 1), 62) : 14,
+      hours: typeof a.hours === "string" && /^\d{2}:\d{2}-\d{2}:\d{2}$/.test(a.hours) ? a.hours : null,
+      timezone: shortString(a.timezone, 64) ? a.timezone : "UTC"
+    }
+  };
 }
 
 export function validateReceiptFrame(o: Record<string, unknown>): ReceiptFrame {

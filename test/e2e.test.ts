@@ -346,3 +346,111 @@ test("the command-line interface drives a full exchange", async () => {
   assert.equal((await run("cli-b", "messages", "outbound", "--conversation", "trip"))[0].delivery, "handled");
   assert.equal((await run("cli-b", "status")).status, "ready");
 });
+
+// ---- availability sharing ----
+
+const DAY = 86_400_000;
+const midnightUtc = (daysFromNow: number): string => new Date(Math.floor(Date.now() / DAY) * DAY + daysFromNow * DAY).toISOString();
+const at = (daysFromNow: number, hh: number, mm = 0): string => new Date(Date.parse(midnightUtc(daysFromNow)) + (hh * 60 + mm) * 60_000).toISOString();
+
+type Pending = { messageId: string; availabilityRequest?: { requestId: string; autoAnswer: { allowed: boolean; reason?: string; coveredFrom?: string; coveredTo?: string } } };
+
+test("availability: auto-answer with permission, owner approval without, organizer gets common times", async () => {
+  const [host, alex, sam] = await ready("av-host", "av-alex", "av-sam");
+  await pair(host, "Alex", alex, "Host");
+  await pair(host, "Sam", sam, "Host");
+  host.groupCreate("Dinner crew", ["Alex", "Sam"]);
+
+  // Alex's owner lets the host's Muse see availability, evenings only, UTC for a deterministic test.
+  await alex.shareGrant("Host", { daysAhead: 14, hours: "17:00-23:00", timezone: "UTC" });
+  await host.poll(); // grants frame
+  assert.deepEqual((host.contacts() as { alias: string; sharesWithMe: unknown }[]).find((c) => c.alias === "Alex")?.sharesWithMe, {
+    availability: { daysAhead: 14, hours: "17:00-23:00", timezone: "UTC" }
+  });
+
+  const { requestId } = (await host.availabilityRequest({
+    group: "Dinner crew", conversationId: "dinner", from: midnightUtc(2), to: midnightUtc(4), durationMinutes: 90, note: "Dinner"
+  })) as { requestId: string };
+
+  // Alex's Muse may answer by itself.
+  await alex.poll();
+  const [toAlex] = alex.pending() as Pending[];
+  assert.equal(toAlex.availabilityRequest?.autoAnswer.allowed, true);
+  const busy = [
+    { start: at(2, 18), end: at(2, 21) }, // "Dentist" — the title never leaves this device
+    { start: at(3, 17), end: at(3, 18) }
+  ];
+  const alexAnswer = (await alex.availabilityRespond({ requestId, busy })) as { automatic: boolean; free: { start: string; end: string }[] };
+  assert.equal(alexAnswer.automatic, true);
+  // Evenings 17-23 minus busy: day 2 leaves 17-18 (too short) and 21-23; day 3 leaves 18-23.
+  assert.deepEqual(alexAnswer.free, [{ start: at(2, 21), end: at(2, 23) }, { start: at(3, 18), end: at(3, 23) }]);
+  assert.deepEqual(alex.pending(), [], "answered automatically; owner not bothered");
+
+  // Sam's Muse has no permission: it must ask Sam.
+  await sam.poll();
+  const [toSam] = sam.pending() as Pending[];
+  assert.equal(toSam.availabilityRequest?.autoAnswer.allowed, false);
+  await assert.rejects(sam.availabilityRespond({ requestId, busy: [] }), /owner-approved/);
+
+  // Partial results: one answer in, no owner notification yet.
+  await host.poll();
+  assert.equal(host.store.pendingMessages().filter((m) => m.availabilityResponse).length, 0);
+  assert.deepEqual((host.availabilityResults(requestId) as { waitingFor: string[] }).waitingFor, ["Sam"]);
+
+  // Sam agrees; Sam's Muse answers with the owner's approval.
+  await sam.availabilityRespond({ requestId, ownerApproved: true, free: [{ start: at(2, 20), end: at(3, 23, 59) }] });
+  await host.poll();
+  const done = host.pending() as { availabilityResults?: { complete: boolean; commonFree: unknown[] } }[];
+  assert.equal(done.length, 1, "owner hears once, when everyone has answered");
+  const results = host.availabilityResults(requestId, [{ start: at(3, 21), end: at(3, 22) }]) as {
+    complete: boolean;
+    commonFree: { start: string; end: string }[];
+    participants: { contact: string; automatic: boolean }[];
+  };
+  assert.equal(results.complete, true);
+  // Alex ∩ Sam (day 2 20:00 → day 3 23:59) minus the host's 21-22 on day 3; 22-23 is too short for 90 min.
+  assert.deepEqual(results.commonFree, [{ start: at(2, 21), end: at(2, 23) }, { start: at(3, 18), end: at(3, 21) }]);
+  assert.deepEqual(results.participants.map((p) => [p.contact, p.automatic]), [["Alex", true], ["Sam", false]]);
+
+  // Only free slots crossed the wire.
+  const received = host.store.listMessages({ conversationId: "dinner", direction: "inbound" });
+  assert.ok(received.every((m) => !JSON.stringify(m).includes(at(2, 18))));
+});
+
+test("availability: revoked, expired, connection-bound and rate-limited permissions stop auto-answers", async () => {
+  const [host, alex] = await ready("avr-host", "avr-alex");
+  await pair(host, "Alex", alex, "Host");
+  const ask = async (): Promise<Pending> => {
+    const hour = 3_600_000;
+    const from = new Date(Date.now() + hour).toISOString();
+    await host.availabilityRequest({ contacts: ["Alex"], conversationId: "c", from, to: new Date(Date.now() + 3 * DAY).toISOString(), durationMinutes: 60 });
+    await alex.poll();
+    const all = alex.pending() as Pending[];
+    return all[all.length - 1];
+  };
+
+  await alex.shareGrant("Host", { maxPerDay: 1, timezone: "UTC" });
+  const first = await ask();
+  assert.equal(first.availabilityRequest?.autoAnswer.allowed, true);
+  await alex.availabilityRespond({ requestId: first.availabilityRequest!.requestId, busy: [] });
+  await assert.rejects(alex.availabilityRespond({ requestId: first.availabilityRequest!.requestId, busy: [] }), /Already answered/);
+  const second = await ask();
+  assert.match(second.availabilityRequest!.autoAnswer.reason!, /daily limit/);
+
+  await alex.shareGrant("Host", { maxPerDay: 5, expiresAt: new Date(Date.now() - 1000).toISOString() });
+  assert.match((await ask()).availabilityRequest!.autoAnswer.reason!, /no standing permission/);
+
+  await alex.shareGrant("Host", { daysAhead: 1, timezone: "UTC" });
+  const clipped = await ask();
+  assert.ok(Date.parse(clipped.availabilityRequest!.autoAnswer.coveredTo!) <= Date.now() + DAY + 1000, "window clipped to days-ahead");
+
+  await alex.shareRevoke("Host");
+  await host.poll();
+  assert.equal((host.contacts() as { alias: string; sharesWithMe: { availability: unknown } }[])[0].sharesWithMe.availability, null);
+  assert.match((await ask()).availabilityRequest!.autoAnswer.reason!, /no standing permission/);
+
+  // A grant is tied to the connection: a new pairing under the same name doesn't inherit it.
+  await alex.shareGrant("Host", { timezone: "UTC" });
+  alex.store.saveContact({ ...alex.store.getContact("Host")!, connectionId: "conn_other" });
+  assert.equal((alex.shareList() as { iShare: { active: boolean }[] }).iShare[0].active, false);
+});

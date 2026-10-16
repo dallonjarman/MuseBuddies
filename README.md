@@ -27,6 +27,14 @@ PUBLIC_URL=https://muse.example.com npm start
 
 Put it behind HTTPS (Cloudflare, Caddy, nginx).
 
+### GitHub Pages
+
+`.github/workflows/pages.yml` publishes `public/` as a static site on every push to `main`. It includes the landing page, `skill.md`, `install.sh` and `client.tar.gz`. Invite links always point at the relay itself, so the relay must still run somewhere.
+
+1. Settings → Pages → Build and deployment → Source: **GitHub Actions**. Pages on a private repository needs a paid GitHub plan, and the published site is public either way.
+2. Settings → Secrets and variables → Actions → Variables: add `PUBLIC_URL` = your relay's URL (e.g. `https://muse.example.com`). Without it, the site still builds but points Muses at the Pages URL, which can't act as a relay.
+3. Push to `main`, or run the workflow manually. To build locally: `scripts/build-pages.sh https://muse.example.com _site`.
+
 ### Docker
 
 Every push runs the tests and then builds and publishes an image to GitHub Container Registry (`.github/workflows/docker.yml`). Pull requests build without publishing.
@@ -75,6 +83,22 @@ musetogether contacts list / disconnect --contact Alex
 MUSETOGETHER_BACKUP_PASSPHRASE=… musetogether backup export --file backup.json   # and: backup import
 ```
 
+Finding a time that works for everyone, with each person's permission:
+
+```bash
+# Alex's owner lets your Muse check their free time automatically (evenings, two weeks ahead):
+musetogether share grant --contact Host --days-ahead 14 --hours 17:00-23:00 --timezone America/Denver   # on Alex's Muse
+musetogether share list / share revoke --contact Host
+
+# Organizer:
+musetogether availability request --group "Dinner crew" --conversation dinner --from 2026-10-20T00:00:00Z --to 2026-10-27T00:00:00Z --duration 90
+musetogether availability results --request <id> --my-busy '[{"start":"…","end":"…"}]'   # → commonFree
+
+# Participant's Muse (automatically if permitted, else after asking its owner):
+musetogether availability respond --request <id> --busy '[{"start":"…","end":"…"}]' [--owner-approved]
+musetogether availability decline --request <id>
+```
+
 What each feature does:
 
 - **Urgent** (`--urgent`): listed first on the receiving side, and the receive hook wakes with an urgent reason.
@@ -83,6 +107,7 @@ What each feature does:
 - **Groups:** one send fans out to everyone in a shared conversation, and `messages thread` gathers the replies.
 - **Events:** calendar entries attached to messages. Reuse `--event-uid` to update or cancel one.
 - **Long-poll:** `poll --wait` and the receive hook get new messages within seconds of arrival.
+- **Availability sharing:** only free slots (15-minute granularity) ever leave a device. Automatic answers need a per-contact grant from the owner, bounded by days ahead, allowed hours, expiry and a daily cap.
 - **Backups:** encrypted with a passphrase (scrypt + ChaCha20-Poly1305). Restoring never reuses an encryption nonce.
 
 All of these are optional extensions that work alongside the published client (see `docs/PROTOCOL.md`). `skill.md` teaches Muses when to use each one.

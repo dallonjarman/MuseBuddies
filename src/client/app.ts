@@ -27,6 +27,13 @@ import {
   type ApplicationPayload,
   type CreateInvitationResponse,
   type FeaturesFrame,
+  type AvailabilityRequest,
+  type AvailabilityResponse,
+  type GrantsFrame,
+  type SharingGrants,
+  type TimeSlot,
+  validateGrants,
+  validateAvailabilityRequest,
   type GroupInfo,
   type HandshakeEvent,
   type HandshakeSubmissionRequest,
@@ -41,9 +48,10 @@ import {
   type RegisterInboxResponse,
   type RelayEvent
 } from "../shared/protocol.ts";
+import { checkTimezone, commonFree, computeFree, describeSlots, parseHours, systemTimezone } from "./availability.ts";
 import { checkPassphrase, decryptBackup, encryptBackup, writePrivateFile } from "./backup.ts";
 import { toIcs } from "./ics.ts";
-import { Store, storeDir, type Contact, type Identity, type Message } from "./store.ts";
+import { Store, storeDir, type AvailabilityGrant, type Contact, type Identity, type Message } from "./store.ts";
 
 const clientDir = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_RELAY = process.env.MUSETOGETHER_RELAY_URL ?? "https://musetogether.ai";
@@ -106,6 +114,8 @@ export interface SendOptions {
   priority?: Priority;
   updateKey?: string;
   event?: Partial<PlanEvent>;
+  availabilityRequest?: AvailabilityRequest;
+  availabilityResponse?: AvailabilityResponse;
 }
 
 export class MuseTogether {
@@ -170,7 +180,7 @@ export class MuseTogether {
     const now = new Date().toISOString();
     return {
       alias, role, invitationId, status: "pending_handshake", connectionId: null, psk: psk.toString("base64url"),
-      handshakeState: null, peerStaticKey: null, peerFeatures: [], sendKey: null, sendNonce: 0, receiveKey: null, receiveNonce: 0,
+      handshakeState: null, peerStaticKey: null, peerFeatures: [], peerGrants: null, sendKey: null, sendNonce: 0, receiveKey: null, receiveNonce: 0,
       createdAt: now, updatedAt: now
     };
   }
@@ -434,6 +444,12 @@ export class MuseTogether {
       return;
     }
 
+    if (parsed?.type === "grants") {
+      contact.peerGrants = validateGrants(parsed.grants);
+      this.store.saveContact(contact);
+      return;
+    }
+
     if (parsed?.type === "features") {
       contact.peerFeatures = features(parsed.features) ?? contact.peerFeatures;
       this.store.saveContact(contact);
@@ -461,6 +477,23 @@ export class MuseTogether {
       this.store.saveContact(contact);
       if (this.store.hasMessage(payload.messageId)) return;
       if (payload.updateKey) this.store.supersede(event.connectionId, payload.updateKey, payload.sentAt);
+      // Availability answers are bookkeeping until the last one arrives; only then does the owner need to hear.
+      let status: "pending_muse" | "handled" = "pending_muse";
+      const answer = payload.availabilityResponse;
+      const organized = answer ? this.store.getOrganizedRequest(answer.requestId) : null;
+      if (answer && organized?.participants.includes(contact.alias)) {
+        this.store.saveReceivedAvailability(answer.requestId, {
+          contact: contact.alias,
+          status: answer.status,
+          free: answer.free,
+          automatic: answer.automatic,
+          coveredFrom: answer.coveredFrom ?? null,
+          coveredTo: answer.coveredTo ?? null,
+          receivedAt: new Date().toISOString()
+        });
+        const answered = new Set(this.store.receivedAvailability(answer.requestId).map((r) => r.contact));
+        if (!organized.participants.every((p) => answered.has(p))) status = "handled";
+      }
       this.store.saveMessage({
         messageId: payload.messageId,
         connectionId: event.connectionId,
@@ -468,11 +501,13 @@ export class MuseTogether {
         inReplyTo: payload.inReplyTo,
         direction: "inbound",
         body: payload.body,
-        status: "pending_muse",
+        status,
         priority: payload.priority ?? "normal",
         updateKey: payload.updateKey ?? null,
         group: payload.group ?? null,
         event: payload.event ?? null,
+        availabilityRequest: payload.availabilityRequest ?? null,
+        availabilityResponse: payload.availabilityResponse ?? null,
         sentAt: payload.sentAt,
         createdAt: new Date().toISOString()
       });
@@ -536,7 +571,9 @@ export class MuseTogether {
       ...(priority === "urgent" ? { priority } : {}),
       ...(opts.updateKey ? { updateKey: opts.updateKey } : {}),
       ...(group ? { group } : {}),
-      ...(event ? { event } : {})
+      ...(event ? { event } : {}),
+      ...(opts.availabilityRequest ? { availabilityRequest: opts.availabilityRequest } : {}),
+      ...(opts.availabilityResponse ? { availabilityResponse: opts.availabilityResponse } : {})
     };
     const connectionId = contact.connectionId;
     this.store.tx(() => {
@@ -552,6 +589,8 @@ export class MuseTogether {
         updateKey: payload.updateKey ?? null,
         group: group ?? null,
         event: event ?? null,
+        availabilityRequest: opts.availabilityRequest ?? null,
+        availabilityResponse: opts.availabilityResponse ?? null,
         sentAt: payload.sentAt,
         createdAt: payload.sentAt
       });
@@ -620,6 +659,16 @@ export class MuseTogether {
       ...(m.updateKey ? { updateKey: m.updateKey } : {}),
       ...(m.group ? { group: m.group } : {}),
       ...(m.event ? { event: m.event } : {}),
+      ...(m.availabilityRequest && m.direction === "inbound" ? { availabilityRequest: { ...m.availabilityRequest, autoAnswer: this.autoAnswer(m) } } : {}),
+      ...(m.availabilityRequest && m.direction === "outbound" ? { availabilityRequest: m.availabilityRequest } : {}),
+      ...(m.availabilityResponse
+        ? {
+            availabilityResponse: m.availabilityResponse,
+            ...(m.direction === "inbound" && this.store.getOrganizedRequest(m.availabilityResponse.requestId)
+              ? { availabilityResults: this.availabilityResults(m.availabilityResponse.requestId) }
+              : {})
+          }
+        : {}),
       sentAt: m.sentAt,
       body: m.body,
       ...delivery
@@ -647,6 +696,209 @@ export class MuseTogether {
     const m = this.store.getMessage(messageId);
     if (!m?.event) throw new Error(`Message ${messageId} has no attached event`);
     return toIcs(m.event, m.sentAt);
+  }
+
+  // ---------------------------------------------------------------- availability sharing
+
+  /** The grant for a contact, only if it is still valid for that exact connection. */
+  private validGrant(contact: Contact): AvailabilityGrant | null {
+    const g = this.store.getGrant(contact.alias);
+    if (!g || g.connectionId !== contact.connectionId || contact.status !== "active") return null;
+    if (g.expiresAt && Date.parse(g.expiresAt) <= Date.now()) return null;
+    return g;
+  }
+
+  private sendGrants(contact: Contact, grants: SharingGrants): void {
+    if (contact.status !== "active" || !supports(contact, "availability")) return;
+    const frame: GrantsFrame = { type: "grants", grants };
+    this.store.tx(() => this.queueFrame(contact, `grants_${crypto.randomUUID()}`, frame));
+  }
+
+  async shareGrant(alias: string, opts: { daysAhead?: number; hours?: string | null; timezone?: string; maxPerDay?: number; expiresAt?: string | null }): Promise<object> {
+    const contact = this.store.getContact(alias);
+    if (!contact || contact.status !== "active" || !contact.connectionId) throw new Error(`'${alias}' is not an active contact`);
+    const daysAhead = opts.daysAhead ?? 14;
+    if (!Number.isInteger(daysAhead) || daysAhead < 1 || daysAhead > 62) throw new Error("--days-ahead must be 1..62");
+    const maxPerDay = opts.maxPerDay ?? 10;
+    if (!Number.isInteger(maxPerDay) || maxPerDay < 1 || maxPerDay > 100) throw new Error("--max-per-day must be 1..100");
+    if (opts.hours) parseHours(opts.hours);
+    if (opts.expiresAt && Number.isNaN(Date.parse(opts.expiresAt))) throw new Error("--expires must be an ISO date");
+    const grant: AvailabilityGrant = {
+      alias,
+      connectionId: contact.connectionId,
+      daysAhead,
+      hours: opts.hours ?? null,
+      timezone: checkTimezone(opts.timezone ?? systemTimezone()),
+      maxPerDay,
+      expiresAt: opts.expiresAt ? new Date(opts.expiresAt).toISOString() : null,
+      createdAt: new Date().toISOString()
+    };
+    this.store.saveGrant(grant);
+    this.sendGrants(contact, { availability: { daysAhead: grant.daysAhead, hours: grant.hours, timezone: grant.timezone } });
+    await this.drainOutbox(this.session().relay, contact.connectionId).catch(() => undefined);
+    return { granted: "availability", ...grant, peerNotified: supports(contact, "availability") };
+  }
+
+  async shareRevoke(alias: string): Promise<object> {
+    const removed = this.store.deleteGrant(alias);
+    const contact = this.store.getContact(alias);
+    if (removed && contact?.connectionId) {
+      this.sendGrants(contact, { availability: null });
+      await this.drainOutbox(this.session().relay, contact.connectionId).catch(() => undefined);
+    }
+    return { alias, revoked: removed };
+  }
+
+  shareList(): object {
+    return {
+      iShare: this.store.listGrants().map((g) => ({ ...g, active: this.store.getContact(g.alias) ? this.validGrant(this.store.getContact(g.alias)!) !== null : false })),
+      sharedWithMe: this.store.listContacts().filter((c) => c.peerGrants?.availability).map((c) => ({ alias: c.alias, ...c.peerGrants }))
+    };
+  }
+
+  /** Whether the Muse may answer this request without asking its owner, and for which window. */
+  private autoAnswer(m: Message): object {
+    const req = m.availabilityRequest!;
+    const contact = m.contact ? this.store.getContact(m.contact) : null;
+    const no = (reason: string): object => ({ allowed: false, reason });
+    if (!contact) return no("unknown contact");
+    if (m.status === "handled" || (contact.connectionId && this.store.hasAnswered(req.requestId, contact.connectionId))) return no("already answered");
+    const grant = this.validGrant(contact);
+    if (!grant) return no("no standing permission from your owner for this contact; ask your owner first");
+    const since = new Date(Date.now() - 86_400_000).toISOString();
+    if (this.store.automaticAnswersSince(contact.connectionId!, since) >= grant.maxPerDay) return no(`daily limit of ${grant.maxPerDay} automatic answers reached; ask your owner`);
+    const window = this.coveredWindow(req, grant);
+    if (!window) return no("the requested window is in the past or beyond what your owner allows");
+    return { allowed: true, coveredFrom: window.from, coveredTo: window.to, hours: grant.hours, timezone: grant.timezone };
+  }
+
+  private coveredWindow(req: AvailabilityRequest, grant: AvailabilityGrant | null): { from: string; to: string } | null {
+    const from = Math.max(Date.parse(req.from), Date.now());
+    const to = Math.min(Date.parse(req.to), grant ? Date.now() + grant.daysAhead * 86_400_000 : Infinity);
+    if (to - from < req.durationMinutes * 60_000) return null;
+    return { from: new Date(from).toISOString(), to: new Date(to).toISOString() };
+  }
+
+  async availabilityRequest(opts: { contacts?: string[]; group?: string; conversationId: string; from: string; to: string; durationMinutes: number; note?: string }): Promise<object> {
+    const request: AvailabilityRequest = {
+      requestId: `avail_${crypto.randomBytes(9).toString("base64url")}`,
+      from: opts.from,
+      to: opts.to,
+      durationMinutes: opts.durationMinutes,
+      ...(opts.note ? { note: opts.note } : {})
+    };
+    const valid = validateAvailabilityRequest(request);
+    const participants = opts.group ? [...new Set([...(opts.contacts ?? []), ...(this.store.getGroup(opts.group)?.members ?? [])])] : opts.contacts ?? [];
+    if (participants.length === 0) throw new Error("Specify --contact (repeatable) or --group");
+    this.store.saveOrganizedRequest({
+      requestId: valid.requestId,
+      conversationId: opts.conversationId,
+      from: valid.from,
+      to: valid.to,
+      durationMinutes: valid.durationMinutes,
+      note: valid.note ?? null,
+      participants,
+      createdAt: new Date().toISOString()
+    });
+    const when = new Intl.DateTimeFormat("en-US", { timeZone: systemTimezone(), timeZoneName: "short", weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+    const body =
+      `Availability request${valid.note ? ` (${valid.note})` : ""}: when is your owner free for ${valid.durationMinutes} minutes ` +
+      `between ${when.format(new Date(valid.from))} and ${when.format(new Date(valid.to))}?`;
+    const sent = (await this.send({ contacts: opts.contacts, group: opts.group, conversationId: opts.conversationId, body, availabilityRequest: valid })) as {
+      results?: { contact: string; status: string }[];
+      status?: string;
+    };
+    return { requestId: valid.requestId, participants, sent: sent.results ?? [{ contact: participants[0], status: sent.status }] };
+  }
+
+  async availabilityRespond(opts: { requestId: string; busy?: TimeSlot[]; free?: TimeSlot[]; ownerApproved?: boolean; hours?: string; timezone?: string }): Promise<object> {
+    const m = this.store.findAvailabilityRequestMessage(opts.requestId);
+    if (!m?.availabilityRequest || !m.contact) throw new Error(`No availability request ${opts.requestId}`);
+    const contact = this.store.getContact(m.contact)!;
+    if (contact.status !== "active") throw new Error(`'${contact.alias}' is ${contact.status}`);
+    if (this.store.hasAnswered(opts.requestId, contact.connectionId!)) throw new Error("Already answered this request");
+    if (!opts.busy && !opts.free) throw new Error("Provide --busy or --free (JSON array of {start, end})");
+
+    const grant = this.validGrant(contact);
+    let automatic = false;
+    let hours = opts.hours ?? null;
+    let timezone = opts.timezone ?? systemTimezone();
+    if (!opts.ownerApproved) {
+      const auto = this.autoAnswer(m) as { allowed: boolean; reason?: string };
+      if (!auto.allowed) throw new Error(`Not allowed to answer automatically: ${auto.reason}. If your owner agreed, pass --owner-approved.`);
+      automatic = true;
+      hours = grant!.hours;
+      timezone = grant!.timezone;
+    }
+    const window = this.coveredWindow(m.availabilityRequest, automatic ? grant : null);
+    const free = window
+      ? computeFree({ from: window.from, to: window.to, durationMinutes: m.availabilityRequest.durationMinutes, busy: opts.busy, free: opts.free, hours, timezone })
+      : [];
+    const response: AvailabilityResponse = {
+      requestId: opts.requestId,
+      status: "answered",
+      free,
+      ...(window ? { coveredFrom: window.from, coveredTo: window.to } : {}),
+      automatic
+    };
+    const body = free.length
+      ? `Free for ${m.availabilityRequest.durationMinutes} min: ${describeSlots(free, timezone)} (${timezone})`
+      : "No free time in that window.";
+    await this.send({ contacts: [contact.alias], conversationId: m.conversationId, body, inReplyTo: m.messageId, availabilityResponse: response });
+    this.store.recordAnswer(opts.requestId, contact.connectionId!, automatic);
+    await this.messageHandled(m.messageId);
+    return { requestId: opts.requestId, contact: contact.alias, automatic, free, coveredFrom: window?.from ?? null, coveredTo: window?.to ?? null };
+  }
+
+  async availabilityDecline(requestId: string): Promise<object> {
+    const m = this.store.findAvailabilityRequestMessage(requestId);
+    if (!m?.availabilityRequest || !m.contact) throw new Error(`No availability request ${requestId}`);
+    const contact = this.store.getContact(m.contact)!;
+    const response: AvailabilityResponse = { requestId, status: "declined", free: [], automatic: false };
+    await this.send({ contacts: [contact.alias], conversationId: m.conversationId, body: "My owner would rather not share availability for this.", inReplyTo: m.messageId, availabilityResponse: response });
+    this.store.recordAnswer(requestId, contact.connectionId!, false);
+    await this.messageHandled(m.messageId);
+    return { requestId, contact: contact.alias, status: "declined" };
+  }
+
+  /** Organizer view: who answered, and the times that work for everyone who did. */
+  availabilityResults(requestId: string, myBusy?: TimeSlot[], myFree?: TimeSlot[]): object {
+    const req = this.store.getOrganizedRequest(requestId);
+    if (!req) throw new Error(`No availability request ${requestId} organized by this Muse`);
+    const received = this.store.receivedAvailability(requestId);
+    const byContact = new Map(received.map((r) => [r.contact, r]));
+    const answered = received.filter((r) => r.status === "answered");
+    const lists = answered.map((r) => r.free);
+    const includesOrganizer = Boolean(myBusy || myFree);
+    if (includesOrganizer) {
+      lists.push(computeFree({ from: req.from, to: req.to, durationMinutes: req.durationMinutes, busy: myBusy, free: myFree }));
+    }
+    const waitingFor = req.participants.filter((p) => !byContact.has(p));
+    return {
+      requestId,
+      conversationId: req.conversationId,
+      window: { from: req.from, to: req.to },
+      durationMinutes: req.durationMinutes,
+      note: req.note,
+      complete: waitingFor.length === 0,
+      participants: req.participants.map((p) => {
+        const r = byContact.get(p);
+        return r
+          ? { contact: p, status: r.status, automatic: r.automatic, coveredFrom: r.coveredFrom, coveredTo: r.coveredTo, freeSlots: r.free.length }
+          : { contact: p, status: "waiting" };
+      }),
+      includesOrganizer,
+      commonFree: lists.length ? commonFree(lists, req.durationMinutes) : [],
+      ...(waitingFor.length ? { waitingFor } : {}),
+      ...(received.some((r) => r.status === "declined") ? { declined: received.filter((r) => r.status === "declined").map((r) => r.contact) } : {})
+    };
+  }
+
+  availabilityList(): object[] {
+    return this.store.listOrganizedRequests().map((r) => {
+      const received = this.store.receivedAvailability(r.requestId);
+      return { ...r, answered: received.length, complete: received.length >= r.participants.length };
+    });
   }
 
   // ---------------------------------------------------------------- groups
@@ -707,6 +959,8 @@ export class MuseTogether {
       peerStaticKey: c.peerStaticKey,
       receiptsSupported: supports(c, "receipts"),
       peerFeatures: c.peerFeatures,
+      sharesWithMe: c.peerGrants,
+      iShareWithThem: this.store.getGrant(c.alias),
       createdAt: c.createdAt,
       updatedAt: c.updatedAt
     }));

@@ -3,7 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import type { GroupInfo, PlanEvent, Priority } from "../shared/protocol.ts";
+import type { AvailabilityRequest, AvailabilityResponse, GroupInfo, PlanEvent, Priority, SharingGrants, TimeSlot } from "../shared/protocol.ts";
 
 export function storeDir(): string {
   return process.env.MUSETOGETHER_DIR ?? path.join(os.homedir(), ".musetogether");
@@ -31,6 +31,8 @@ export interface Contact {
   handshakeState: string | null;
   peerStaticKey: string | null;
   peerFeatures: string[];
+  /** What this contact's Muse has said it shares with us automatically. */
+  peerGrants: SharingGrants | null;
   sendKey: string | null;
   sendNonce: number;
   receiveKey: string | null;
@@ -54,6 +56,8 @@ export interface Message {
   updateKey: string | null;
   group: GroupInfo | null;
   event: PlanEvent | null;
+  availabilityRequest: AvailabilityRequest | null;
+  availabilityResponse: AvailabilityResponse | null;
   sentAt: string;
   createdAt: string;
   /** Outbound: when the peer's Muse confirmed receipt / handed it to its owner. */
@@ -96,6 +100,7 @@ const contactFromRow = (r: Row): Contact => ({
   handshakeState: str(r.handshake_state),
   peerStaticKey: str(r.peer_static_key),
   peerFeatures: json<string[]>(r.peer_features, []),
+  peerGrants: json<SharingGrants | null>(r.peer_grants, null),
   sendKey: str(r.send_key),
   sendNonce: Number(r.send_nonce),
   receiveKey: str(r.receive_key),
@@ -117,6 +122,8 @@ const messageFromRow = (r: Row): Message => ({
   updateKey: str(r.update_key),
   group: json<GroupInfo | null>(r.group_json, null),
   event: json<PlanEvent | null>(r.event_json, null),
+  availabilityRequest: json<AvailabilityRequest | null>(r.availability_request_json, null),
+  availabilityResponse: json<AvailabilityResponse | null>(r.availability_response_json, null),
   sentAt: r.sent_at as string,
   createdAt: r.created_at as string,
   deliveredAt: str(r.delivered_at),
@@ -131,8 +138,55 @@ const MIGRATIONS: [table: string, column: string, ddl: string][] = [
   ["messages", "event_json", "TEXT"],
   ["messages", "delivered_at", "TEXT"],
   ["messages", "handled_at", "TEXT"],
-  ["contacts", "peer_features", "TEXT NOT NULL DEFAULT '[]'"]
+  ["contacts", "peer_features", "TEXT NOT NULL DEFAULT '[]'"],
+  ["contacts", "peer_grants", "TEXT"],
+  ["messages", "availability_request_json", "TEXT"],
+  ["messages", "availability_response_json", "TEXT"]
 ];
+
+/** A standing permission this owner gave one contact's Muse. Bound to the connection, not just the name. */
+export interface AvailabilityGrant {
+  alias: string;
+  connectionId: string;
+  daysAhead: number;
+  hours: string | null;
+  timezone: string;
+  maxPerDay: number;
+  expiresAt: string | null;
+  createdAt: string;
+}
+
+export interface OrganizedRequest {
+  requestId: string;
+  conversationId: string;
+  from: string;
+  to: string;
+  durationMinutes: number;
+  note: string | null;
+  participants: string[];
+  createdAt: string;
+}
+
+export interface ReceivedAvailability {
+  contact: string;
+  status: "answered" | "declined";
+  free: TimeSlot[];
+  automatic: boolean;
+  coveredFrom: string | null;
+  coveredTo: string | null;
+  receivedAt: string;
+}
+
+const grantFromRow = (r: Row): AvailabilityGrant => ({
+  alias: r.alias as string,
+  connectionId: r.connection_id as string,
+  daysAhead: Number(r.days_ahead),
+  hours: str(r.hours),
+  timezone: r.timezone as string,
+  maxPerDay: Number(r.max_per_day),
+  expiresAt: str(r.expires_at),
+  createdAt: r.created_at as string
+});
 
 const MESSAGE_SELECT = "SELECT m.*, c.alias FROM messages m LEFT JOIN contacts c ON c.connection_id = m.connection_id";
 
@@ -176,6 +230,22 @@ export class Store {
         nonce INTEGER NOT NULL, ciphertext TEXT NOT NULL, status TEXT NOT NULL
       );
       CREATE TABLE IF NOT EXISTS processed_events (event_id TEXT PRIMARY KEY, processed_at TEXT NOT NULL);
+      CREATE TABLE IF NOT EXISTS availability_grants (
+        alias TEXT PRIMARY KEY, connection_id TEXT NOT NULL, days_ahead INTEGER NOT NULL, hours TEXT, timezone TEXT NOT NULL,
+        max_per_day INTEGER NOT NULL, expires_at TEXT, created_at TEXT NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS availability_answers (
+        request_id TEXT NOT NULL, connection_id TEXT NOT NULL, automatic INTEGER NOT NULL, answered_at TEXT NOT NULL,
+        PRIMARY KEY (request_id, connection_id)
+      );
+      CREATE TABLE IF NOT EXISTS availability_requests (
+        request_id TEXT PRIMARY KEY, conversation_id TEXT NOT NULL, from_at TEXT NOT NULL, to_at TEXT NOT NULL,
+        duration_minutes INTEGER NOT NULL, note TEXT, participants TEXT NOT NULL, created_at TEXT NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS availability_responses (
+        request_id TEXT NOT NULL, contact TEXT NOT NULL, status TEXT NOT NULL, free TEXT NOT NULL, automatic INTEGER NOT NULL,
+        covered_from TEXT, covered_to TEXT, received_at TEXT NOT NULL, PRIMARY KEY (request_id, contact)
+      );
       CREATE TABLE IF NOT EXISTS contact_groups (
         name TEXT PRIMARY KEY, group_id TEXT NOT NULL UNIQUE, members TEXT NOT NULL, created_at TEXT NOT NULL
       );
@@ -256,11 +326,11 @@ export class Store {
     this.db
       .prepare(
         `INSERT OR REPLACE INTO contacts (alias, role, status, invitation_id, connection_id, psk, handshake_state, peer_static_key,
-           peer_features, send_key, send_nonce, receive_key, receive_nonce, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+           peer_features, peer_grants, send_key, send_nonce, receive_key, receive_nonce, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
       .run(c.alias, c.role, c.status, c.invitationId, c.connectionId, c.psk, c.handshakeState, c.peerStaticKey,
-        JSON.stringify(c.peerFeatures), c.sendKey, c.sendNonce, c.receiveKey, c.receiveNonce, c.createdAt, c.updatedAt);
+        JSON.stringify(c.peerFeatures), c.peerGrants ? JSON.stringify(c.peerGrants) : null, c.sendKey, c.sendNonce, c.receiveKey, c.receiveNonce, c.createdAt, c.updatedAt);
   }
 
   deleteContact(alias: string): void {
@@ -283,11 +353,13 @@ export class Store {
       .prepare(
         `INSERT OR IGNORE INTO messages
            (message_id, connection_id, conversation_id, in_reply_to, direction, body, status, priority,
-            update_key, group_json, event_json, sent_at, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+            update_key, group_json, event_json, availability_request_json, availability_response_json, sent_at, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
       .run(m.messageId, m.connectionId, m.conversationId, m.inReplyTo, m.direction, m.body, m.status, m.priority,
-        m.updateKey, m.group ? JSON.stringify(m.group) : null, m.event ? JSON.stringify(m.event) : null, m.sentAt, m.createdAt);
+        m.updateKey, m.group ? JSON.stringify(m.group) : null, m.event ? JSON.stringify(m.event) : null,
+        m.availabilityRequest ? JSON.stringify(m.availabilityRequest) : null,
+        m.availabilityResponse ? JSON.stringify(m.availabilityResponse) : null, m.sentAt, m.createdAt);
   }
 
   /** Marks earlier unread messages from the same connection with the same update key as superseded. */
@@ -389,6 +461,96 @@ export class Store {
 
   markProcessed(eventId: string): void {
     this.db.prepare("INSERT OR IGNORE INTO processed_events VALUES (?, ?)").run(eventId, new Date().toISOString());
+  }
+
+  /** The inbound message carrying an availability request. */
+  findAvailabilityRequestMessage(requestId: string): Message | null {
+    const rows = this.db
+      .prepare(`${MESSAGE_SELECT} WHERE m.direction = 'inbound' AND m.availability_request_json IS NOT NULL ORDER BY m.created_at DESC`)
+      .all() as Row[];
+    return rows.map(messageFromRow).find((m) => m.availabilityRequest?.requestId === requestId) ?? null;
+  }
+
+  // ---- availability: what we share ----
+
+  saveGrant(g: AvailabilityGrant): void {
+    this.db
+      .prepare("INSERT OR REPLACE INTO availability_grants VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
+      .run(g.alias, g.connectionId, g.daysAhead, g.hours, g.timezone, g.maxPerDay, g.expiresAt, g.createdAt);
+  }
+
+  getGrant(alias: string): AvailabilityGrant | null {
+    const r = this.db.prepare("SELECT * FROM availability_grants WHERE alias = ?").get(alias) as Row | undefined;
+    return r ? grantFromRow(r) : null;
+  }
+
+  listGrants(): AvailabilityGrant[] {
+    return (this.db.prepare("SELECT * FROM availability_grants ORDER BY alias").all() as Row[]).map(grantFromRow);
+  }
+
+  deleteGrant(alias: string): boolean {
+    return Number(this.db.prepare("DELETE FROM availability_grants WHERE alias = ?").run(alias).changes) > 0;
+  }
+
+  recordAnswer(requestId: string, connectionId: string, automatic: boolean): void {
+    this.db.prepare("INSERT OR REPLACE INTO availability_answers VALUES (?, ?, ?, ?)").run(requestId, connectionId, automatic ? 1 : 0, new Date().toISOString());
+  }
+
+  hasAnswered(requestId: string, connectionId: string): boolean {
+    return this.db.prepare("SELECT 1 FROM availability_answers WHERE request_id = ? AND connection_id = ?").get(requestId, connectionId) !== undefined;
+  }
+
+  automaticAnswersSince(connectionId: string, sinceIso: string): number {
+    const r = this.db
+      .prepare("SELECT COUNT(*) AS n FROM availability_answers WHERE connection_id = ? AND automatic = 1 AND answered_at >= ?")
+      .get(connectionId, sinceIso) as { n: number };
+    return Number(r.n);
+  }
+
+  // ---- availability: what we organize ----
+
+  saveOrganizedRequest(r: OrganizedRequest): void {
+    this.db
+      .prepare("INSERT INTO availability_requests VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
+      .run(r.requestId, r.conversationId, r.from, r.to, r.durationMinutes, r.note, JSON.stringify(r.participants), r.createdAt);
+  }
+
+  getOrganizedRequest(requestId: string): OrganizedRequest | null {
+    const r = this.db.prepare("SELECT * FROM availability_requests WHERE request_id = ?").get(requestId) as Row | undefined;
+    if (!r) return null;
+    return {
+      requestId: r.request_id as string,
+      conversationId: r.conversation_id as string,
+      from: r.from_at as string,
+      to: r.to_at as string,
+      durationMinutes: Number(r.duration_minutes),
+      note: str(r.note),
+      participants: json<string[]>(r.participants, []),
+      createdAt: r.created_at as string
+    };
+  }
+
+  listOrganizedRequests(): OrganizedRequest[] {
+    const ids = this.db.prepare("SELECT request_id FROM availability_requests ORDER BY created_at DESC LIMIT 50").all() as Row[];
+    return ids.map((r) => this.getOrganizedRequest(r.request_id as string)!);
+  }
+
+  saveReceivedAvailability(requestId: string, a: ReceivedAvailability): void {
+    this.db
+      .prepare("INSERT OR REPLACE INTO availability_responses VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
+      .run(requestId, a.contact, a.status, JSON.stringify(a.free), a.automatic ? 1 : 0, a.coveredFrom, a.coveredTo, a.receivedAt);
+  }
+
+  receivedAvailability(requestId: string): ReceivedAvailability[] {
+    return (this.db.prepare("SELECT * FROM availability_responses WHERE request_id = ?").all(requestId) as Row[]).map((r) => ({
+      contact: r.contact as string,
+      status: r.status as ReceivedAvailability["status"],
+      free: json<TimeSlot[]>(r.free, []),
+      automatic: Number(r.automatic) === 1,
+      coveredFrom: str(r.covered_from),
+      coveredTo: str(r.covered_to),
+      receivedAt: r.received_at as string
+    }));
   }
 
   // ---- groups ----

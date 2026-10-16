@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 // musetogether: the CLI a Muse runs to pair with, and message, other Muses through a relay.
+import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import type { PlanEvent, Priority } from "../shared/protocol.ts";
+import type { PlanEvent, Priority, TimeSlot } from "../shared/protocol.ts";
 import { MuseTogether, hookCheck, type SendOptions } from "./app.ts";
 import { Store, storeDir } from "./store.ts";
 
@@ -32,6 +33,14 @@ const USAGE = [
   "group list",
   "group delete --name <name>",
   "disconnect --contact <name>",
+  "share grant --contact <name> [--days-ahead 14] [--hours 08:00-22:00] [--timezone <IANA>] [--max-per-day 10] [--expires <iso>]",
+  "share revoke --contact <name>",
+  "share list",
+  "availability request (--contact <name>)... | --group <name>  --conversation <id> --from <iso> --to <iso> --duration <minutes> [--note <text>]",
+  "availability respond --request <id> (--busy <json|@file> | --free <json|@file>) [--owner-approved [--hours HH:MM-HH:MM] [--timezone <IANA>]]",
+  "availability decline --request <id>",
+  "availability results --request <id> [--my-busy <json|@file> | --my-free <json|@file>]",
+  "availability list",
   "backup export --file <path>                           (passphrase from MUSETOGETHER_BACKUP_PASSPHRASE or stdin)",
   "backup import --file <path> [--force]"
 ];
@@ -121,7 +130,25 @@ export async function main(argv: string[]): Promise<void> {
 
   const app = new MuseTogether(new Store());
   try {
-    const grouped = ["hook", "invite", "messages", "contacts", "group", "backup"].includes(command);
+    const grouped = ["hook", "invite", "messages", "contacts", "group", "backup", "share", "availability"].includes(command);
+    const slots = (name: string): TimeSlot[] | undefined => {
+      const v = flag(name);
+      if (v === undefined) return undefined;
+      const text = v.startsWith("@") ? fs.readFileSync(v.slice(1), "utf8") : v;
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(text);
+      } catch {
+        throw new Error(`${name} must be a JSON array of {"start": ISO, "end": ISO}`);
+      }
+      if (!Array.isArray(parsed)) throw new Error(`${name} must be a JSON array`);
+      return parsed.map((x: { start?: unknown; end?: unknown }) => {
+        if (typeof x?.start !== "string" || typeof x?.end !== "string" || Number.isNaN(Date.parse(x.start)) || Number.isNaN(Date.parse(x.end))) {
+          throw new Error(`${name}: every entry needs ISO "start" and "end"`);
+        }
+        return { start: x.start, end: x.end };
+      });
+    };
     switch (grouped ? `${command} ${sub ?? ""}` : command) {
       case "setup":
         print(await app.setup(flag("--relay")));
@@ -215,6 +242,57 @@ export async function main(argv: string[]): Promise<void> {
         print(app.backupExport(required("--file"), pass));
         break;
       }
+      case "share grant":
+        print(
+          await app.shareGrant(required("--contact"), {
+            daysAhead: flag("--days-ahead") ? number("--days-ahead", 14) : undefined,
+            hours: flag("--hours") ?? null,
+            timezone: flag("--timezone"),
+            maxPerDay: flag("--max-per-day") ? number("--max-per-day", 10) : undefined,
+            expiresAt: flag("--expires") ?? null
+          })
+        );
+        break;
+      case "share revoke":
+        print(await app.shareRevoke(required("--contact")));
+        break;
+      case "share list":
+        print(app.shareList());
+        break;
+      case "availability request":
+        print(
+          await app.availabilityRequest({
+            contacts: all("--contact"),
+            group: flag("--group"),
+            conversationId: required("--conversation"),
+            from: required("--from"),
+            to: required("--to"),
+            durationMinutes: number("--duration", 0),
+            note: flag("--note")
+          })
+        );
+        break;
+      case "availability respond":
+        print(
+          await app.availabilityRespond({
+            requestId: required("--request"),
+            busy: slots("--busy"),
+            free: slots("--free"),
+            ownerApproved: argv.includes("--owner-approved"),
+            hours: flag("--hours"),
+            timezone: flag("--timezone")
+          })
+        );
+        break;
+      case "availability decline":
+        print(await app.availabilityDecline(required("--request")));
+        break;
+      case "availability results":
+        print(app.availabilityResults(required("--request"), slots("--my-busy"), slots("--my-free")));
+        break;
+      case "availability list":
+        print(app.availabilityList());
+        break;
       case "disconnect":
         print(await app.disconnect(required("--contact")));
         break;
