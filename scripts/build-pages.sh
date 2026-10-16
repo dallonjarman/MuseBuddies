@@ -18,12 +18,14 @@ cp "$root/self-host.md" "$root/docker-compose.yml" "$out/"
 (cd "$root" && tar --owner=0 --group=0 -czf "$(cd "$out" && pwd)/client.tar.gz" package.json src/client src/shared)
 
 escaped="$(printf '%s' "$relay_url" | sed 's/[&|\\]/\\&/g')"
+# Content hash of the site, so pages link "app.js?v=<hash>" and browsers skip stale cached copies.
+version="$(cd "$root/public" && find . -maxdepth 1 -type f | sort | xargs cat | sha256sum | cut -c1-10)"
 find "$out" -type f \( -name '*.html' -o -name '*.md' -o -name '*.sh' -o -name '*.js' \) \
-  -exec sed -i "s|{{PUBLIC_URL}}|${escaped}|g" {} +
+  -exec sed -i -e "s|{{PUBLIC_URL}}|${escaped}|g" -e "s|{{ASSET_VERSION}}|${version}|g" {} +
 touch "$out/.nojekyll" # serve files as-is, no Jekyll processing
 
-if grep -rl '{{PUBLIC_URL}}' "$out" >/dev/null; then
-  echo "error: unreplaced {{PUBLIC_URL}} placeholders" >&2
+if grep -rlE '\{\{(PUBLIC_URL|ASSET_VERSION)\}\}' "$out" >/dev/null; then
+  echo "error: unreplaced {{PUBLIC_URL}} or {{ASSET_VERSION}} placeholders" >&2
   exit 1
 fi
 echo "Built $out for relay $relay_url"

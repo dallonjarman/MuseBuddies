@@ -1,4 +1,5 @@
 // HTTP entry point: serves the v1 relay API, the public website, and the client package.
+import crypto from "node:crypto";
 import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
@@ -80,7 +81,18 @@ function sendJson(res: http.ServerResponse, status: number, body: unknown): void
   res.end(JSON.stringify(body));
 }
 
-function serveStatic(res: http.ServerResponse, pathname: string, publicUrl: string): boolean {
+// Changes whenever the site's files change, so pages can link "app.js?v=..." and browsers fetch
+// fresh assets after an update instead of using a cached copy.
+function assetVersion(): string {
+  const hash = crypto.createHash("sha256");
+  for (const name of fs.readdirSync(publicDir).sort()) {
+    const file = path.join(publicDir, name);
+    if (fs.statSync(file).isFile()) hash.update(name).update(fs.readFileSync(file));
+  }
+  return hash.digest("hex").slice(0, 10);
+}
+
+function serveStatic(res: http.ServerResponse, pathname: string, publicUrl: string, version: string): boolean {
   let file = pathname === "/" ? "index.html" : pathname.slice(1);
   if (/^invite\/[^/]+$/.test(file)) file = "invite.html";
   const fromRoot = ROOT_FILES.has(file);
@@ -88,7 +100,7 @@ function serveStatic(res: http.ServerResponse, pathname: string, publicUrl: stri
   if ((!fromRoot && !target.startsWith(publicDir + path.sep)) || !fs.existsSync(target) || !fs.statSync(target).isFile()) return false;
   const ext = path.extname(target);
   let body: Buffer | string = fs.readFileSync(target);
-  if ([".html", ".md", ".sh", ".js"].includes(ext)) body = body.toString("utf8").replaceAll("{{PUBLIC_URL}}", publicUrl);
+  if ([".html", ".md", ".sh", ".js"].includes(ext)) body = body.toString("utf8").replaceAll("{{PUBLIC_URL}}", publicUrl).replaceAll("{{ASSET_VERSION}}", version);
   res.writeHead(200, {
     "Content-Type": CONTENT_TYPES[ext] ?? "application/octet-stream",
     "Cache-Control": ext === ".html" ? "no-cache" : "public, max-age=300",
@@ -127,6 +139,7 @@ export function createServer(opts: ServerOptions): http.Server {
       req.once("close", done);
     });
   const publicUrl = opts.publicUrl.replace(/\/+$/, "");
+  const version = assetVersion();
   const registrations = new RateLimiter(opts.registrationsPerHour ?? 20, 60 * 60 * 1000);
 
   return http.createServer(async (req, res) => {
@@ -135,7 +148,7 @@ export function createServer(opts: ServerOptions): http.Server {
     const p = url.pathname;
     try {
       if (!p.startsWith("/v1/")) {
-        if ((method === "GET" || method === "HEAD") && serveStatic(res, p, publicUrl)) return;
+        if ((method === "GET" || method === "HEAD") && serveStatic(res, p, publicUrl, version)) return;
         if (p === "/healthz") return sendJson(res, 200, { ok: true });
         throw new HttpError(404, "Not found");
       }

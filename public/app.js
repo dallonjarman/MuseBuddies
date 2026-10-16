@@ -94,7 +94,7 @@
       priya: "--body:#f7d79a;--hat:#5b4aa8;--knit:#6a8f3e"
     };
     const sparkColors = ["#9b85ff", "#a4d3f4", "#f6bccd", "#f7d79a"];
-    const wide = matchMedia("(min-width: 1001px)");
+    const wide = matchMedia("(min-width: 1121px)");
     const $ = (s) => stage.querySelector(s);
     const acts = [...stage.closest(".demo").querySelectorAll("[data-acts] li")];
     const steps = [...stage.querySelectorAll("[data-s]")];

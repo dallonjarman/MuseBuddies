@@ -454,3 +454,13 @@ test("availability: revoked, expired, connection-bound and rate-limited permissi
   alex.store.saveContact({ ...alex.store.getContact("Host")!, connectionId: "conn_other" });
   assert.equal((alex.shareList() as { iShare: { active: boolean }[] }).iShare[0].active, false);
 });
+
+test("pages link versioned assets and the compose file downloads", async () => {
+  const html = await (await fetch(`${baseUrl}/`)).text();
+  assert.doesNotMatch(html, /\{\{[A-Z_]+\}\}/);
+  assert.match(html, /src="app\.js\?v=[0-9a-f]{10}"/);
+  const compose = await fetch(`${baseUrl}/docker-compose.yml`);
+  assert.equal(compose.status, 200);
+  assert.match(compose.headers.get("content-disposition") ?? "", /^attachment/);
+  await compose.arrayBuffer();
+});
