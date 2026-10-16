@@ -94,7 +94,7 @@ server {
 
 ### Using the published image
 
-Each push to `main` publishes `ghcr.io/dallonjarman/musetogether:latest`. To use it instead of building locally, add this to `.env`:
+Each push to `main` publishes `ghcr.io/dallonjarman/musetogether:latest` for both `linux/amd64` and `linux/arm64`, so it runs on regular servers as well as a Raspberry Pi or ARM cloud machines. It's rebuilt weekly with the latest base-image security fixes. Pin a `sha-<short>` or version tag if you'd rather update on your own schedule. To use it instead of building locally, add this to `.env`:
 
 ```bash
 RELAY_IMAGE=ghcr.io/dallonjarman/musetogether:latest
