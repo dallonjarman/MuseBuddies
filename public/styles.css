@@ -162,7 +162,7 @@ p { margin: 0; }
 .hero-ctas { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 6px; }
 .fine { font-size: 14px; color: var(--faint); }
 
-/* ---------------------------------------------------------------- hero demo: two phones and the relay cloud */
+/* ---------------------------------------------------------------- hero demo: phones, and the relay cloud where Muses meet */
 
 .demo { margin: 56px 0 0; }
 .stage {
@@ -201,12 +201,14 @@ p { margin: 0; }
 }
 .ph-who b { position: relative; margin-top: -9px; padding: 3px 12px; border-radius: 999px; font-size: 12.5px; font-weight: 600; background: #2a2a2e; border: 1px solid rgb(255 255 255 / 0.08); }
 .ph-chat {
-  flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; gap: 8px; padding: 10px 12px;
+  flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; gap: 6px; padding: 10px 12px;
   -webkit-mask-image: linear-gradient(transparent, #000 48px); mask-image: linear-gradient(transparent, #000 48px);
 }
 .ph-stamp { flex: none; text-align: center; font-size: 11px; color: #8d8d96; margin: 4px 0; }
-.b { flex: none; align-self: flex-start; max-width: 88%; padding: 9px 13px; border-radius: 20px; background: #262629; font-size: 13.5px; line-height: 1.38; }
+.b { flex: none; align-self: flex-start; max-width: 86%; padding: 8px 13px; border-radius: 20px; background: #262629; font-size: 13.5px; line-height: 1.38; }
 .b.me { align-self: flex-end; background: #3a3a40; }
+/* Back-to-back texts from the same side sit closer, like a real thread. */
+.b.me + .b.me, .b.muse + .b.muse { margin-top: -3px; }
 .b-event { display: flex; align-items: center; gap: 9px; margin-top: 8px; padding: 8px 10px; border-radius: 13px; background: #333338; }
 .b-event svg { width: 18px; height: 18px; color: #b9a9ff; flex: none; }
 .b-event b { display: block; font-size: 12.5px; }
@@ -231,54 +233,74 @@ p { margin: 0; }
 .ph-tabs .on { background: #000; }
 .ph-tabs svg { width: 22px; height: 22px; }
 .ph-label { margin-top: 12px; text-align: center; font-size: 13px; font-weight: 600; color: var(--muted); }
+.ph-you, .ph-them { transition: opacity 450ms ease, scale 450ms ease; }
 
-/* The sky between the phones: the relay cloud, drifting puffs and the group meeting spots. */
-.sky { position: relative; min-height: 420px; }
+/* Friends' phones that pop in when the whole group plans together. On wide screens only Sam's and
+   Priya's appear, under the cloud; on narrower ones all four replace the big phones. */
+.crowd { position: absolute; z-index: 2; left: 50%; bottom: 32px; translate: -50% 0; display: flex; gap: 22px; }
+.mini { zoom: var(--zx, 0.42); }
+.mini .ph-label { margin-top: 18px; font-size: 30px; }
+.mini-you, .mini-them { display: none; }
+.crowd .phone { opacity: 0; scale: 0.5; transition: opacity 350ms ease, scale 550ms cubic-bezier(0.3, 1.5, 0.5, 1); }
+.stage.is-group .crowd .phone { opacity: 1; scale: 1; }
+.stage.is-group .crowd .phone:nth-child(2) { transition-delay: 120ms; }
+.stage.is-group .crowd .phone:nth-child(3) { transition-delay: 240ms; }
+.stage.is-group .crowd .phone:nth-child(4) { transition-delay: 360ms; }
+
+/* The sky between the phones. --row1 and --row2 are where Muses stand to talk; they move when the
+   group gathers, so they're registered to animate. */
+@property --row1 { syntax: "<percentage>"; inherits: true; initial-value: 38%; }
+@property --row2 { syntax: "<percentage>"; inherits: true; initial-value: 72%; }
+.sky { --row1: 38%; --row2: 72%; position: relative; min-height: 420px; transition: --row1 700ms ease, --row2 700ms ease; }
+.stage.is-group .sky { --row1: 15%; --row2: 50%; }
 .puff { position: absolute; width: 90px; fill: var(--cloud); opacity: 0.75; animation: drift 16s ease-in-out infinite alternate; }
 .p1 { top: 6%; left: 2%; }
 .p2 { bottom: 9%; right: 0; width: 72px; animation-delay: -6s; }
 .p3 { top: 15%; right: 14%; width: 52px; opacity: 0.5; animation-delay: -11s; }
 @keyframes drift { from { translate: -14px 0; } to { translate: 18px 4px; } }
-.cloud { position: absolute; inset: 0; margin: auto; width: min(100%, 300px); height: fit-content; animation: bob 7s ease-in-out infinite; }
+.cloud { position: absolute; inset: 0; margin: auto; width: min(100%, 300px); height: fit-content; animation: bob 7s ease-in-out infinite; transition: bottom 700ms ease, width 700ms ease; }
+.stage.is-group .cloud { bottom: 40%; width: min(100%, 240px); }
 .cloud > svg { display: block; width: 100%; height: auto; fill: var(--cloud); filter: drop-shadow(0 18px 28px rgb(80 60 180 / 0.18)); transition: scale 400ms cubic-bezier(0.3, 1.6, 0.5, 1), filter 400ms; }
 .cloud.is-pulse > svg { scale: 1.07; filter: drop-shadow(0 0 30px rgb(124 92 255 / 0.6)); }
-.cloud-label { position: absolute; left: 50%; top: 52%; translate: -50% -50%; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; font-size: 12.5px; font-weight: 600; color: var(--cloud-ink); }
+.cloud-label { position: absolute; left: 50%; top: 56%; translate: -50% -50%; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; font-size: 12.5px; font-weight: 600; color: var(--cloud-ink); }
 .cloud-label svg { width: 14px; height: 14px; color: var(--brand); }
-.cloud-cipher { position: absolute; left: 50%; top: 68%; translate: -50% -50%; font: 11px var(--mono); letter-spacing: 0.04em; white-space: nowrap; color: var(--faint); }
-.cloud-agree { position: absolute; left: 50%; top: 92%; translate: -50% -50%; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; padding: 5px 11px; border-radius: 999px; background: var(--ok); color: #fff; font-size: 12px; font-weight: 600; transition: opacity 300ms, scale 400ms cubic-bezier(0.3, 1.6, 0.5, 1); }
+.cloud-cipher { position: absolute; left: 50%; top: 72%; translate: -50% -50%; font: 11px var(--mono); letter-spacing: 0.04em; white-space: nowrap; color: var(--faint); }
+.cloud-agree { position: absolute; left: 50%; top: 94%; translate: -50% -50%; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; padding: 5px 11px; border-radius: 999px; background: var(--ok); color: #fff; font-size: 12px; font-weight: 600; transition: opacity 300ms, scale 400ms cubic-bezier(0.3, 1.6, 0.5, 1); }
 .cloud-agree svg { width: 13px; height: 13px; }
-.links { position: absolute; inset: 0; width: 100%; height: 100%; fill: none; stroke: var(--brand); stroke-width: 1.5; stroke-dasharray: 4 6; vector-effect: non-scaling-stroke; opacity: 0.45; transition: opacity 500ms; animation: dash 1.4s linear infinite; }
+.links { position: absolute; left: 24%; right: 24%; width: 52%; fill: none; stroke: var(--brand); stroke-width: 1.5; stroke-dasharray: 4 6; opacity: 0.45; transition: opacity 500ms; animation: dash 1.4s linear infinite; }
 .links path { vector-effect: non-scaling-stroke; }
+.links-pair { top: calc(var(--row1) - 1px); height: 2px; overflow: visible; }
+.links-group { top: var(--row1); height: calc(var(--row2) - var(--row1)); }
 @keyframes dash { to { stroke-dashoffset: -20; } }
 .slot { position: absolute; z-index: 6; width: 64px; height: 64px; translate: -50% -50%; }
-.s0 { left: 24%; top: 30%; } .s1 { left: 76%; top: 30%; } .s2 { left: 24%; top: 72%; } .s3 { left: 76%; top: 72%; }
+.s0, .s2 { left: 24%; } .s1, .s3 { left: 76%; }
+.s0, .s1 { top: var(--row1); } .s2, .s3 { top: var(--row2); }
 .slot-muse { width: 100%; height: 100%; }
 .pill {
-  position: absolute; bottom: calc(100% + 2px); left: 50%; translate: -50% 0; white-space: nowrap;
-  padding: 5px 10px; border-radius: 12px; font-size: 12px; font-weight: 550;
+  position: absolute; bottom: calc(100% + 2px); left: 50%; translate: -50% 0; width: max-content; max-width: 190px;
+  padding: 5px 10px; border-radius: 12px; font-size: 12px; font-weight: 550; line-height: 1.3; text-align: center;
   background: var(--bg); color: var(--text); border: 1px solid var(--line); box-shadow: var(--shadow);
   transition: opacity 300ms, scale 400ms cubic-bezier(0.3, 1.6, 0.5, 1);
 }
+.pill .typing-dots { padding: 3px 2px; }
 
-/* The Muses that fly between phones (added by app.js). */
+/* The Muses that fly between phones and the cloud (added by app.js). */
 .flyer { position: absolute; z-index: 5; left: 0; top: 0; width: calc(34px + 30px * var(--z, 1)); aspect-ratio: 1; offset-rotate: 0deg; offset-anchor: center; pointer-events: none; opacity: 0; transition: opacity 250ms; }
 .flyer.is-on { opacity: 1; }
 .flyer .m { width: 100%; height: 100%; filter: drop-shadow(0 6px 8px rgb(20 10 60 / 0.3)); }
 .flyer.is-flying .m { animation: wobble 420ms ease-in-out infinite alternate; }
-.stage.is-group .flyer:not(.is-flying) .m { animation: bob 2.4s ease-in-out infinite; }
+.flyer.is-on:not(.is-flying) .m { animation: bob 2.4s ease-in-out infinite; }
 @keyframes wobble { from { rotate: -9deg; } to { rotate: 9deg; } }
-.fl-lock { position: absolute; right: -5px; bottom: 0; display: none; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--brand); color: #fff; box-shadow: 0 0 0 2px var(--sky); }
-.fl-lock svg { width: 11px; height: 11px; }
-.flyer.has-mail .fl-lock { display: grid; }
 .spark { position: absolute; z-index: 4; width: 7px; height: 7px; margin: -3.5px 0 0 -3.5px; border-radius: 50%; background: var(--c, var(--brand)); pointer-events: none; animation: spark 800ms ease-out forwards; }
 @keyframes spark { from { opacity: 0.85; scale: 1; } to { opacity: 0; scale: 0.2; translate: 0 6px; } }
 
-/* Playback: app.js adds .is-live; without it (no JS, reduced motion) everything shows at once. */
+/* Playback: app.js adds .is-live; without it (no JS, reduced motion) the finished group plan shows. */
 .stage.is-live [data-s] { display: none; }
 .stage.is-live [data-s].is-in { display: block; animation: msg-in 380ms cubic-bezier(0.2, 0.7, 0.2, 1); }
 .stage.is-live .slot-muse { visibility: hidden; }
 .stage.is-live .pill:not(.is-in), .stage.is-live .cloud-agree:not(.is-in) { opacity: 0; scale: 0.7; }
-.stage.is-live:not(.is-group) .links { opacity: 0; }
+.links-pair, .stage.is-live:not(.is-meet) .links-group { opacity: 0; }
+.stage.is-pair .links-pair { opacity: 0.45; }
 
 .acts { list-style: none; counter-reset: act; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 18px 0 0; padding: 0; }
 .acts li { counter-increment: act; display: inline-flex; align-items: center; gap: 8px; padding: 5px 12px 5px 5px; border-radius: 999px; border: 1px solid var(--line); background: var(--bg); font-size: 13px; color: var(--faint); transition: color 300ms, border-color 300ms; }
@@ -301,21 +323,26 @@ p { margin: 0; }
 @keyframes tdot { 0%, 60%, 100% { opacity: 0.3; translate: 0 0; } 30% { opacity: 1; translate: 0 -3px; } }
 @keyframes msg-in { from { opacity: 0; translate: 0 8px; } to { opacity: 1; translate: 0 0; } }
 
+/* Tablets: cloud on top, two phones below; the group's four phones line up in their place. */
 @media (max-width: 1000px) {
   .stage { grid-template-columns: 1fr 1fr; grid-template-areas: "sky sky" "you them"; gap: 14px; padding: 20px 16px; border-radius: 24px; }
-  .sky { grid-area: sky; min-height: 300px; }
+  .sky, .stage.is-group .sky { --row1: 30%; --row2: 80%; min-height: 300px; }
+  .sky { grid-area: sky; }
   .ph-you { grid-area: you; }
   .ph-them { grid-area: them; }
-  .cloud { width: min(62%, 280px); }
+  .cloud, .stage.is-group .cloud { bottom: 0; width: min(62%, 280px); }
+  .crowd { position: static; translate: none; grid-row: 2; grid-column: 1 / -1; place-self: center; display: grid; grid-template-columns: repeat(4, auto); gap: 10px; }
+  .mini-you, .mini-them { display: block; }
+  .stage.is-group .ph-you, .stage.is-group .ph-them { opacity: 0; scale: 0.96; }
 }
-/* Narrow screens: one phone at a time. app.js switches to Alex's phone while your Muse is in the cloud. */
+/* Phones: one big phone at a time (app.js switches to Alex's while Bramble is busy), and a 2×2 group. */
 @media (max-width: 700px) {
   .stage { grid-template-columns: minmax(0, 1fr); grid-template-areas: "sky" "phone"; gap: 8px; padding: 16px 12px 20px; }
-  .sky { min-height: 290px; }
-  .ph-you, .ph-them { grid-area: phone; transition: opacity 450ms ease, scale 450ms ease; }
+  .sky, .stage.is-group .sky { min-height: 290px; }
+  .ph-you, .ph-them, .crowd { grid-area: phone; }
+  .crowd { grid-template-columns: repeat(2, auto); gap: 8px 10px; }
   .stage[data-view="them"] .ph-you, .stage:not([data-view="them"]) .ph-them { opacity: 0; scale: 0.96; }
-  .s0, .s1 { top: 22%; } .s2, .s3 { top: 80%; }
-  .pill { font-size: 11px; padding: 4px 8px; }
+  .pill { font-size: 11px; padding: 4px 8px; max-width: 150px; }
   .slot { width: 52px; height: 52px; }
   .acts { gap: 6px; }
   .acts li:not(.is-on) { font-size: 0; gap: 0; padding: 5px; }

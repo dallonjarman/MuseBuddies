@@ -54,8 +54,11 @@
       const cs = getComputedStyle(demoStage);
       const inner = demoStage.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
       const cols = cs.gridTemplateColumns.split(" ").length;
+      // --z sizes the big phones, --zx the small ones that pop in for the group.
       const z = cols === 1 ? Math.min(0.88, inner / 300) : cols === 2 ? Math.min(1, (inner - parseFloat(cs.columnGap)) / 2 / 300) : 1;
+      const zx = cols === 1 ? Math.min(0.44, (inner - 10) / 600) : cols === 2 ? Math.min(0.5, (inner - 30) / 1200) : 0.42;
       demoStage.style.setProperty("--z", z.toFixed(3));
+      demoStage.style.setProperty("--zx", zx.toFixed(3));
     };
     fit();
     new ResizeObserver(fit).observe(demoStage);
@@ -80,7 +83,7 @@
     }, 2400);
   }
 
-  // ---------------------------------------------------------------- the hero demo: you, the relay cloud, Alex
+  // ---------------------------------------------------------------- the hero demo: phones, and Muses meeting in the cloud
 
   const stage = document.querySelector("[data-demo]");
   if (stage) {
@@ -91,6 +94,7 @@
       priya: "--body:#f7d79a;--hat:#5b4aa8;--knit:#6a8f3e"
     };
     const sparkColors = ["#9b85ff", "#a4d3f4", "#f6bccd", "#f7d79a"];
+    const wide = matchMedia("(min-width: 1001px)");
     const $ = (s) => stage.querySelector(s);
     const acts = [...stage.closest(".demo").querySelectorAll("[data-acts] li")];
     const steps = [...stage.querySelectorAll("[data-s]")];
@@ -98,14 +102,13 @@
     const slots = [...stage.querySelectorAll("[data-slot]")];
     const cloud = $("[data-cloud]");
     const agree = $(".cloud-agree");
-    const avatar = { you: $('[data-avatar="you"]'), them: $('[data-avatar="them"]') };
     stage.classList.add("is-live");
 
     const flyers = {};
     for (const [name, style] of Object.entries(muses)) {
       const f = document.createElement("div");
       f.className = "flyer";
-      f.innerHTML = `<svg class="m" viewBox="0 0 100 100" style="${style}"><use href="#cozy"/></svg><span class="fl-lock"><svg><use href="#i-lock"/></svg></span>`;
+      f.innerHTML = `<svg class="m" viewBox="0 0 100 100" style="${style}"><use href="#cozy"/></svg>`;
       stage.append(f);
       flyers[name] = f;
     }
@@ -120,19 +123,23 @@
       while (id === run && (!inView || document.hidden)) await sleep(250);
       check(id);
     };
+    const jitter = (ms) => ms * (0.8 + Math.random() * 0.4);
     const at = (el) => {
       const r = el.getBoundingClientRect();
       const s = stage.getBoundingClientRect();
       return { x: r.left - s.left - stage.clientLeft + r.width / 2, y: r.top - s.top - stage.clientTop + r.height / 2 };
     };
-    // Muses land on top of the cloud, above its label.
-    const inCloud = () => { const c = at(cloud); return { x: c.x, y: c.y - cloud.offsetHeight * 0.3 }; };
-    const offstage = (dx) => { const c = at($(".sky")); return { x: c.x + dx, y: -60 }; };
-    // On narrow screens only one phone shows at a time (see styles.css).
+    // Which avatar a Muse lives in right now: the big phones, or the small ones that pop in for the group
+    // (narrower screens swap the big phones for all four small ones).
+    const avatarOf = (who) => {
+      const small = !(who === "you" || who === "them") || (stage.classList.contains("is-group") && !wide.matches);
+      return $(small ? `.mini-${who} [data-avatar]` : `.ph-${who} [data-avatar]`);
+    };
+    // On phones only one big phone shows at a time (see styles.css).
     const view = (who) => { stage.dataset.view = who; };
     const act = (n) => acts.forEach((li, i) => li.classList.toggle("is-on", i === n - 1));
     const ping = (who) => {
-      const a = avatar[who];
+      const a = avatarOf(who);
       a.classList.remove("is-ping");
       void a.offsetWidth;
       a.classList.add("is-ping");
@@ -150,61 +157,98 @@
       s.addEventListener("animationend", () => s.remove());
       stage.append(s);
     };
-    const fly = (f, from, to, { lift = 100, ms = 1150, mail = false } = {}) => new Promise((resolve) => {
+    // Fly a Muse from one element to another. It grows out of an avatar and shrinks back into one.
+    const fly = (f, fromEl, toEl, { lift = 80, ms = 1150 } = {}) => new Promise((resolve) => {
+      const from = at(fromEl);
+      const to = at(toEl);
+      const size = (el) => Math.min(1.1, Math.max(0.35, el.getBoundingClientRect().width / f.offsetWidth));
       const c = { x: (from.x + to.x) / 2, y: Math.min(from.y, to.y) - lift };
       f.getAnimations().forEach((a) => a.cancel());
       f.style.offsetPath = `path("M ${from.x} ${from.y} Q ${c.x} ${c.y} ${to.x} ${to.y}")`;
-      f.classList.toggle("has-mail", mail);
       f.classList.add("is-on", "is-flying");
-      const a = f.animate([{ offsetDistance: "0%" }, { offsetDistance: "100%" }], { duration: ms, easing: "cubic-bezier(0.45, 0, 0.25, 1)", fill: "forwards" });
+      const a = f.animate(
+        [{ offsetDistance: "0%", scale: size(fromEl) }, { offsetDistance: "100%", scale: size(toEl) }],
+        { duration: ms, easing: "cubic-bezier(0.45, 0, 0.25, 1)", fill: "forwards" }
+      );
       const trail = setInterval(() => spark(f), 50);
       const done = () => { clearInterval(trail); f.classList.remove("is-flying"); resolve(); };
       a.onfinish = done;
       a.oncancel = done;
     });
-    const land = (...fs) => fs.forEach((f) => f.classList.remove("is-on", "has-mail"));
+    const home = (...names) => names.forEach((n) => flyers[n].classList.remove("is-on"));
 
-    const type = async (who, text, id) => {
+    // Typing with a human rhythm: uneven keys, little pauses after words and punctuation, and
+    // negative numbers in `parts` backspace over a typo.
+    const type = async (who, parts, id) => {
       const box = $(`[data-composer="${who}"]`);
       const typed = box.querySelector(".ph-typed");
-      for (const ch of text) {
-        typed.textContent += ch;
-        box.classList.add("has-text");
-        await wait(30 + Math.random() * 45, id);
+      await wait(jitter(500), id);
+      let prev = "";
+      for (const part of parts) {
+        if (typeof part === "number") {
+          await wait(jitter(420), id);
+          for (let i = 0; i < -part; i++) {
+            typed.textContent = [...typed.textContent].slice(0, -1).join("");
+            await wait(jitter(65), id);
+          }
+          await wait(jitter(220), id);
+          continue;
+        }
+        for (const ch of part) {
+          typed.textContent += ch;
+          box.classList.add("has-text");
+          let ms = 40 + Math.random() * 75;
+          if (ch === " " && Math.random() < 0.25) ms += 180;
+          if (/[,.!?:]/.test(prev)) ms += 200;
+          prev = ch;
+          await wait(ms, id);
+        }
       }
-      await wait(350, id);
+      await wait(jitter(380), id);
       const send = box.querySelector(".ph-send");
       send.classList.add("is-press");
-      await wait(150, id);
+      await wait(140, id);
       send.classList.remove("is-press");
       typed.textContent = "";
       box.classList.remove("has-text");
     };
-    const show = async (s, id, think = 0) => {
+    // Show a text. A Muse "types" for about as long as its message would take.
+    const show = async (s, id, { think } = {}) => {
       const el = stage.querySelector(`[data-s="${s}"]`);
-      if (think) {
+      if (el.classList.contains("muse")) {
+        const ms = think ?? Math.min(1700, 450 + el.textContent.trim().length * 16);
         const dots = document.createElement("div");
         dots.className = "typing-bubble";
         dots.append(document.createElement("i"), document.createElement("i"), document.createElement("i"));
         el.before(dots);
-        try { await wait(think, id); } finally { dots.remove(); }
+        try { await wait(jitter(ms), id); } finally { dots.remove(); }
       }
       el.classList.add("is-in");
-      await wait(400, id);
+      await wait(jitter(450), id);
     };
+    // A Muse speaks in the cloud: typing dots in its bubble, then the words, left up long enough to read.
+    const say = async (i, text, id) => {
+      const p = pills[i];
+      p.innerHTML = '<span class="typing-dots"><i></i><i></i><i></i></span>';
+      p.classList.add("is-in");
+      await wait(jitter(750), id);
+      p.textContent = text;
+      await wait(800 + text.length * 30, id);
+    };
+    const hush = (...is) => is.forEach((i) => pills[i].classList.remove("is-in"));
 
     const reset = () => {
       steps.forEach((s) => s.classList.remove("is-in"));
-      pills.forEach((p) => p.classList.remove("is-in"));
+      hush(0, 1, 2, 3);
       agree.classList.remove("is-in");
-      stage.classList.remove("is-group");
+      stage.classList.remove("is-group", "is-pair", "is-meet");
       cloud.classList.remove("is-pulse");
       stage.querySelectorAll(".typing-bubble, .spark").forEach((e) => e.remove());
       stage.querySelectorAll(".ph-typed").forEach((e) => { e.textContent = ""; });
       stage.querySelectorAll(".has-text").forEach((e) => e.classList.remove("has-text"));
       for (const f of Object.values(flyers)) {
         f.getAnimations().forEach((a) => a.cancel());
-        land(f);
+        f.classList.remove("is-on", "is-flying");
       }
       act(0);
       view("you");
@@ -214,84 +258,99 @@
       const id = ++run;
       reset();
       try {
-        await wait(700, id);
-
-        // 1. You ask your Muse.
-        act(1);
-        await type("you", "Can you set up dinner with Alex this week?", id);
-        await show("y1", id);
-        await show("y2", id, 900);
-
-        // 2. Your Muse flies through the relay, carrying a sealed message.
-        act(2);
-        ping("you");
-        await fly(flyers.you, at(avatar.you), inCloud(), { mail: true });
-        check(id);
-        view("them");
-        await pulse(id);
-        await fly(flyers.you, inCloud(), at(avatar.them), { mail: true });
-        check(id);
-        land(flyers.you);
-        ping("them");
-
-        // 3. Alex's Muse checks with Alex, then answers.
-        act(3);
-        await show("t1", id, 900);
         await wait(600, id);
-        await type("them", "Yes! Thursday works", id);
-        await show("t2", id);
-        await show("t3", id, 800);
 
-        act(2);
-        ping("them");
-        await fly(flyers.them, at(avatar.them), inCloud(), { mail: true });
-        check(id);
-        view("you");
-        await pulse(id, 600);
-        await fly(flyers.them, inCloud(), at(avatar.you), { mail: true });
-        check(id);
-        land(flyers.them);
-        ping("you");
+        // 1. You text your Muse, double-texting like people do.
         act(1);
-        await show("y3", id, 800);
-        await wait(1800, id);
+        await type("you", ["hey! can you set up dinnr", -2, "er with Alex sometime this week?"], id);
+        await show("y1", id);
+        await type("you", ["somewhere with good veggie options 🌱"], id);
+        await show("y1b", id);
+        await show("y2", id);
 
-        // 4. A group: four Muses meet in the relay and work it out together.
-        await type("you", "Now plan Sam's birthday with everyone", id);
+        // 2. Both Muses fly up and meet in the cloud.
+        act(2);
+        stage.classList.add("is-pair");
+        ping("you");
+        await fly(flyers.you, avatarOf("you"), slots[0]);
+        check(id);
+        await say(0, "Hi Bramble! Is Alex free for dinner this week?", id);
+        view("them");
+        ping("them");
+        await fly(flyers.them, avatarOf("them"), slots[1]);
+        check(id);
+        await pulse(id, 500);
+        await say(1, "Thursday after 7 looks open. Let me check with Alex!", id);
+        await say(0, "Sure, I'll wait right here ☁️", id);
+
+        // 3. Bramble pops home to ask Alex, then brings the answer back.
+        act(3);
+        hush(1);
+        await fly(flyers.them, slots[1], avatarOf("them"), { ms: 900 });
+        check(id);
+        home("them");
+        ping("them");
+        await show("t1", id);
+        await show("t1b", id, { think: 800 });
+        await type("them", ["omg yes"], id);
+        await show("t2", id);
+        await type("them", ["thrusday", -6, "ursday's perfect"], id);
+        await show("t2b", id);
+        await show("t3", id);
+        ping("them");
+        await fly(flyers.them, avatarOf("them"), slots[1], { ms: 900 });
+        check(id);
+        act(2);
+        hush(0);
+        await say(1, "Alex says yes! 🙌", id);
+        view("you");
+        await say(0, "Perfect. I'll book Olive for 7 🍝", id);
+        hush(0, 1);
+        stage.classList.remove("is-pair");
+        await Promise.all([
+          fly(flyers.you, slots[0], avatarOf("you")),
+          sleep(150).then(() => fly(flyers.them, slots[1], avatarOf("them")))
+        ]);
+        check(id);
+        home("you", "them");
+        ping("you");
+        await show("y3", id);
+        await show("y3b", id, { think: 1000 });
+        await wait(1600, id);
+
+        // 4. A bigger plan: four friends' phones pop in and their Muses gather in the cloud.
+        act(1);
+        await type("you", ["ok next up: Sam's birthday 🎂"], id);
         await show("y4", id);
-        await show("y5", id, 800);
+        await type("you", ["can you get everyone together?"], id);
+        await show("y4b", id);
+        await show("y5", id);
         act(4);
         stage.classList.add("is-group");
-        ping("you");
-        ping("them");
-        const away = [offstage(-150), offstage(150)];
-        await Promise.all([
-          fly(flyers.you, at(avatar.you), at(slots[0]), { ms: 1300 }),
-          sleep(200).then(() => fly(flyers.them, at(avatar.them), at(slots[1]), { ms: 1300 })),
-          sleep(400).then(() => fly(flyers.sam, away[0], at(slots[2]), { ms: 1300, lift: 10 })),
-          sleep(550).then(() => fly(flyers.priya, away[1], at(slots[3]), { ms: 1300, lift: 10 }))
-        ]);
+        await wait(1000, id);
+        const order = ["you", "them", "sam", "priya"];
+        order.forEach(ping);
+        await Promise.all(order.map((who, i) => sleep(i * 180).then(() => fly(flyers[who], avatarOf(who), slots[i], { ms: 1250 }))));
         check(id);
-        for (const p of pills) {
-          p.classList.add("is-in");
-          await wait(1050, id);
-        }
+        stage.classList.add("is-meet");
+        await say(0, "Saturday for Sam's birthday?", id);
+        await say(1, "Alex is free all weekend", id);
+        await say(2, "Sam can do 8. Loves sushi 🍣", id);
+        await say(3, "I'll book Sushi Kaz", id);
         agree.classList.add("is-in");
-        await pulse(id, 1400);
-        pills.forEach((p) => p.classList.remove("is-in"));
+        await pulse(id, 1600);
+        hush(0, 1, 2, 3);
         agree.classList.remove("is-in");
-        stage.classList.remove("is-group");
-        await Promise.all([
-          fly(flyers.you, at(slots[0]), at(avatar.you)),
-          fly(flyers.them, at(slots[1]), at(avatar.them)),
-          fly(flyers.sam, at(slots[2]), away[0], { lift: 10 }),
-          fly(flyers.priya, at(slots[3]), away[1], { lift: 10 })
-        ]);
+        stage.classList.remove("is-meet");
+        await Promise.all(order.map((who, i) => sleep(i * 120).then(() => fly(flyers[who], slots[i], avatarOf(who)))));
         check(id);
-        land(...Object.values(flyers));
-        ping("you");
-        ping("them");
-        await Promise.all([show("y6", id, 900), show("t4", id, 1300)]);
+        home(...order);
+        order.forEach(ping);
+        await Promise.all([
+          show("y6", id), show("my1", id),
+          sleep(300).then(() => show("t4", id)), sleep(300).then(() => show("al1", id)),
+          sleep(600).then(() => show("sm1", id)), sleep(900).then(() => show("pr1", id))
+        ]);
 
         await wait(7000, id);
         play();
