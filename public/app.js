@@ -1,6 +1,6 @@
-// Landing page behavior: theme toggle, rotating name, use-case picker,
-// and the small live demos inside feature cards (the hero demo is demo.js). Everything is readable without JavaScript;
-// with reduced motion, demos show their final state.
+// Landing page behavior: theme toggle, rotating name, use-case picker, routines and the terminal.
+// The hero demo is demo.js and the feature playground is play.js. Everything is readable without
+// JavaScript; with reduced motion, demos show their final state.
 (() => {
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -65,19 +65,6 @@
     }, 2400);
   }
 
-  // ---------------------------------------------------------------- availability week
-
-  const week = document.querySelector("[data-week]");
-  if (week) {
-    week.classList.add("is-live");
-    onVisible(week, async () => {
-      for (const p of ["p1", "p2", "p3", "p4"]) {
-        week.classList.add(p);
-        await sleep(750);
-      }
-    });
-  }
-
   // ---------------------------------------------------------------- routines play their run log
 
   for (const routine of document.querySelectorAll("[data-routine]")) {
@@ -89,38 +76,6 @@
         await sleep(step.classList.contains("in") ? 1100 : 700);
       }
     }, 0.45);
-  }
-
-  // ---------------------------------------------------------------- receipts tick through
-
-  const receipts = document.querySelector("[data-receipts]");
-  if (receipts) {
-    receipts.classList.add("is-live");
-    const items = [...receipts.querySelectorAll("li")];
-    onVisible(receipts, async () => {
-      for (;;) {
-        items.forEach((li) => li.classList.remove("is-done"));
-        await sleep(700);
-        for (const li of items) { li.classList.add("is-done"); await sleep(900); }
-        await sleep(3200);
-      }
-    });
-  }
-
-  // ---------------------------------------------------------------- switch, backup
-
-  const sw = document.querySelector("[data-switch]");
-  if (sw) onVisible(sw, async () => { sw.classList.remove("is-on"); await sleep(700); sw.classList.add("is-on"); });
-  const backup = document.querySelector("[data-backup]");
-  if (backup) onVisible(backup, () => backup.classList.add("is-live"));
-
-  // ---------------------------------------------------------------- relay sees noise
-
-  const A = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
-  for (const cipher of document.querySelectorAll("[data-cipher]")) {
-    const len = cipher.textContent.length;
-    const noise = () => Array.from({ length: len }, () => A[(Math.random() * 64) | 0]).join("");
-    onVisible(cipher, () => setInterval(() => { if (!document.hidden) cipher.textContent = noise(); }, 1500));
   }
 
   // ---------------------------------------------------------------- terminal types itself
@@ -136,7 +91,7 @@
         if (isCmd) {
           const text = line.replace(/<[^>]+>/g, "").replace(/^\$ /, "");
           term.insertAdjacentHTML("beforeend", "<b>$</b> ");
-          for (const ch of text) { term.insertAdjacentText("beforeend", ch); await sleep(45); }
+          for (const ch of text) { term.insertAdjacentText("beforeend", ch); await sleep(26); }
           term.insertAdjacentText("beforeend", "\n");
           await sleep(500);
         } else {

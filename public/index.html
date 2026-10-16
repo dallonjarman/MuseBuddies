@@ -13,10 +13,13 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
   <link rel="stylesheet" href="styles.css?v={{ASSET_VERSION}}">
   <link rel="stylesheet" href="demo.css?v={{ASSET_VERSION}}">
+  <link rel="stylesheet" href="play.css?v={{ASSET_VERSION}}">
   <script>try{var t=localStorage.getItem("mt-theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
   <script src="site.js?v={{ASSET_VERSION}}" defer></script>
   <script src="app.js?v={{ASSET_VERSION}}" defer></script>
+  <script src="muses.js?v={{ASSET_VERSION}}" defer></script>
   <script src="demo.js?v={{ASSET_VERSION}}" defer></script>
+  <script src="play.js?v={{ASSET_VERSION}}" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
@@ -47,6 +50,7 @@
       <symbol id="t-bulb" viewBox="0 0 24 24"><path d="M9 17.5h6M10 21h4M12 3a6 6 0 0 0-3.6 10.8c.6.5.9 1.1.9 1.8v1.9h5.4v-1.9c0-.7.3-1.3.9-1.8A6 6 0 0 0 12 3Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
       <symbol id="t-check" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="m8.5 12 2.5 2.5 4.5-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
       <symbol id="t-apps" viewBox="0 0 24 24"><circle cx="7.5" cy="7.5" r="3.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="m16.5 3.5 4 6.5h-8Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><rect x="4" y="13.5" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8"/><rect x="13" y="13.5" width="7" height="7" rx="3.5" fill="none" stroke="currentColor" stroke-width="1.8"/></symbol>
+      <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="16" cy="7" r="2.2" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="10" cy="17" r="2.2" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
       <symbol id="i-github" viewBox="0 0 24 24"><path fill="currentColor" d="M12 .5C5.73.5.5 5.74.5 12.02c0 5.08 3.29 9.39 7.86 10.91.58.1.79-.25.79-.56v-2c-3.2.7-3.87-1.37-3.87-1.37-.52-1.33-1.28-1.69-1.28-1.69-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.19 1.76 1.19 1.03 1.76 2.69 1.25 3.35.96.1-.75.4-1.25.73-1.54-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.84 1.19 3.1 0 4.42-2.69 5.39-5.25 5.68.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.53 11.53 0 0 0 23.5 12.02C23.5 5.74 18.27.5 12 .5Z"/></symbol>
       <symbol id="muse" viewBox="0 0 64 60"><path d="M14 4h36a12 12 0 0 1 12 12v18a12 12 0 0 1-12 12H26l-12 10v-10.6A12 12 0 0 1 2 34V16A12 12 0 0 1 14 4Z"/></symbol>
     </defs>
@@ -60,7 +64,7 @@
       </a>
       <nav class="topnav" aria-label="Main">
         <a href="#get-started">Get started</a>
-        <a href="#features">Features</a>
+        <a href="#features">Try it</a>
         <a href="#routines">Routines</a>
         <a href="#how">How it works</a>
         <a href="#faq">FAQ</a>
@@ -76,16 +80,15 @@
 
   <main id="main">
     <section class="hero">
-      <div class="announce-wrap"><a class="announce" href="#features"><b>New</b>Share free time, only with the people you choose</a></div>
+      <div class="announce-wrap"><a class="announce" href="#features"><b>New</b>Try every feature live, right on this page</a></div>
       <div class="wordmark" aria-hidden="true">
         <div class="wm-ghost wm-top"><span>MuseTogether MuseTogether MuseTogether MuseTogether MuseTogether MuseTogether MuseTogether MuseTogether</span></div>
         <div class="wm-main">MuseTogether</div>
         <div class="wm-ghost wm-bottom"><span>Together Muse Together Muse Together Muse Together Muse Together Muse Together Muse Together Muse</span></div>
-        <svg class="mascot m1" viewBox="0 0 64 60" style="--c:#f5a524;--f:#2a1d05"><use href="#muse" fill="var(--c)"/><g class="face"><ellipse cx="24" cy="24" rx="3.4" ry="4.4" fill="var(--f)"/><ellipse cx="40" cy="24" rx="3.4" ry="4.4" fill="var(--f)"/><path d="M26 33c3.5 3 8.5 3 12 0" stroke="var(--f)" stroke-width="2.8" stroke-linecap="round" fill="none"/></g></svg>
-        <svg class="mascot m2" viewBox="0 0 64 60" style="--c:#7c5cff;--f:#fff"><use href="#muse" fill="var(--c)"/><g class="face"><ellipse cx="24" cy="24" rx="3.4" ry="4.4" fill="var(--f)"/><ellipse cx="40" cy="24" rx="3.4" ry="4.4" fill="var(--f)"/><path d="M26 33c3.5 3 8.5 3 12 0" stroke="var(--f)" stroke-width="2.8" stroke-linecap="round" fill="none"/></g></svg>
-        <svg class="mascot m3" viewBox="0 0 64 60" style="--c:#14b8a6;--f:#04201d"><use href="#muse" fill="var(--c)"/><g class="face"><ellipse cx="24" cy="24" rx="3.4" ry="4.4" fill="var(--f)"/><ellipse cx="40" cy="24" rx="3.4" ry="4.4" fill="var(--f)"/><path d="M26 33c3.5 3 8.5 3 12 0" stroke="var(--f)" stroke-width="2.8" stroke-linecap="round" fill="none"/></g></svg>
-        <svg class="mascot m4" viewBox="0 0 64 60" style="--c:#f05a7e;--f:#fff"><use href="#muse" fill="var(--c)"/><g class="face"><ellipse cx="24" cy="24" rx="3.4" ry="4.4" fill="var(--f)"/><ellipse cx="40" cy="24" rx="3.4" ry="4.4" fill="var(--f)"/><path d="M26 33c3.5 3 8.5 3 12 0" stroke="var(--f)" stroke-width="2.8" stroke-linecap="round" fill="none"/></g></svg>
-        <svg class="mascot m5" viewBox="0 0 64 60" style="--c:#3b82f6;--f:#fff"><use href="#muse" fill="var(--c)"/><g class="face"><ellipse cx="24" cy="24" rx="3.4" ry="4.4" fill="var(--f)"/><ellipse cx="40" cy="24" rx="3.4" ry="4.4" fill="var(--f)"/><path d="M26 33c3.5 3 8.5 3 12 0" stroke="var(--f)" stroke-width="2.8" stroke-linecap="round" fill="none"/></g></svg>
+        <span class="hm hm1" data-muse="you"></span>
+        <span class="hm hm2" data-muse="them"></span>
+        <span class="hm hm3" data-muse="sam"></span>
+        <span class="hm hm4" data-muse="priya"></span>
         <span class="hello h-a">Thursday?</span>
         <span class="hello h-b">Works for me!</span>
       </div>
@@ -117,6 +120,12 @@
           <p class="dm-caption" aria-hidden="true"></p>
           <figcaption>Illustrated example. Messages between Muses are end-to-end encrypted, so the relay only ever sees noise. <button class="link-btn" type="button" data-replay>Replay</button></figcaption>
         </figure>
+        <ul class="stats" aria-label="At a glance">
+          <li><b>0</b><span>new apps, accounts or passwords</span></li>
+          <li><b>End to end</b><span>sealed on your device, opened on theirs</span></li>
+          <li><b>24 h</b><span>single-use invite links</span></li>
+          <li><b>1 command</b><span>to run your own relay</span></li>
+        </ul>
       </div>
     </section>
 
@@ -152,116 +161,184 @@
     <section class="section" id="features" aria-labelledby="ft-title">
       <div class="wrap">
         <div class="section-head center">
-          <h2 id="ft-title">Your Muse, plus everyone else's.</h2>
-          <p>Muses coordinate in the background and come back to you only when there's a plan, a question, or something urgent.</p>
+          <p class="eyebrow">Try it yourself</p>
+          <h2 id="ft-title">Everything your Muse can do, live.</h2>
+          <p>These aren't screenshots. Encrypt a message, move people's free time around, push a flight delay, download a real calendar invite.</p>
         </div>
 
-        <article class="card card-wide">
-          <div class="card-copy">
-            <h3>Find a time that works for everyone</h3>
-            <p>Your Muse asks the others when their people are free. Muses with permission answer on their own; the rest ask first. You see where everyone's free time overlaps, and nothing else.</p>
-            <ul class="ticks">
-              <li><svg><use href="#i-check"/></svg>Only free time is shared, never what's on a calendar</li>
-              <li><svg><use href="#i-check"/></svg>Each person decides who can ask, and how far ahead</li>
-            </ul>
+        <div class="pg" data-playground>
+          <div class="pg-tabs" role="tablist" aria-label="Features to try">
+            <button class="pg-tab" role="tab" id="pg-t-e2e" aria-controls="pg-e2e" aria-selected="true" type="button"><span class="pg-ic">
+              <svg><use href="#i-lock"/></svg></span><span><b>Private by design</b><small>Watch a message get sealed</small></span></button>
+            <button class="pg-tab" role="tab" id="pg-t-free" aria-controls="pg-free" aria-selected="false" type="button"><span class="pg-ic">
+              <svg><use href="#i-clock"/></svg></span><span><b>Find a time</b><small>Free time, never calendars</small></span></button>
+            <button class="pg-tab" role="tab" id="pg-t-live" aria-controls="pg-live" aria-selected="false" type="button"><span class="pg-ic">
+              <svg><use href="#i-plane"/></svg></span><span><b>Live updates</b><small>Urgent when it matters</small></span></button>
+            <button class="pg-tab" role="tab" id="pg-t-rcpt" aria-controls="pg-rcpt" aria-selected="false" type="button"><span class="pg-ic">
+              <svg><use href="#i-check"/></svg></span><span><b>Receipts</b><small>Know they actually got it</small></span></button>
+            <button class="pg-tab" role="tab" id="pg-t-group" aria-controls="pg-group" aria-selected="false" type="button"><span class="pg-ic">
+              <svg><use href="#i-users"/></svg></span><span><b>Groups</b><small>One message, every Muse</small></span></button>
+            <button class="pg-tab" role="tab" id="pg-t-cal" aria-controls="pg-cal" aria-selected="false" type="button"><span class="pg-ic">
+              <svg><use href="#i-cal"/></svg></span><span><b>Calendar invites</b><small>A real .ics, try it</small></span></button>
+            <button class="pg-tab" role="tab" id="pg-t-rules" aria-controls="pg-rules" aria-selected="false" type="button"><span class="pg-ic">
+              <svg><use href="#i-sliders"/></svg></span><span><b>Your rules</b><small>You decide what's shared</small></span></button>
           </div>
-          <div class="mock week-mock" data-week>
-            <div class="mock-bar"><span class="dots"><i></i><i></i><i></i></span>Availability: dinner next week<span class="mock-right"><span class="live-dot"></span>3 of 3 answered</span></div>
-            <div class="week">
-              <div class="wk-hours"><span>5 pm</span><span>7 pm</span><span>9 pm</span><span>11 pm</span></div>
-              <div class="wk-day"><b>Mon</b><div class="wk-track"><i class="you" style="--t:0%;--h:33%"></i><i class="sam" style="--t:33%;--h:67%"></i></div></div>
-              <div class="wk-day"><b>Tue</b><div class="wk-track"><i class="alex" style="--t:0%;--h:33%"></i><i class="you" style="--t:50%;--h:50%"></i></div></div>
-              <div class="wk-day"><b>Wed</b><div class="wk-track"></div></div>
-              <div class="wk-day is-match"><b>Thu</b><div class="wk-track"><i class="you" style="--t:17%;--h:83%"></i><i class="alex" style="--t:33%;--h:67%"></i><i class="sam" style="--t:0%;--h:83%"></i><span class="wk-overlap" style="--t:33%;--h:50%"></span></div></div>
-              <div class="wk-day"><b>Fri</b><div class="wk-track"><i class="you" style="--t:0%;--h:67%"></i><i class="sam" style="--t:50%;--h:50%"></i></div></div>
-              <div class="wk-day"><b>Sat</b><div class="wk-track"><i class="you" style="--t:0%;--h:100%"></i><i class="alex" style="--t:17%;--h:50%"></i><i class="sam" style="--t:67%;--h:33%"></i></div></div>
-              <div class="wk-day"><b>Sun</b><div class="wk-track"><i class="alex" style="--t:0%;--h:50%"></i></div></div>
-            </div>
-            <div class="mock-foot"><span class="key you">You</span><span class="key alex">Alex</span><span class="key sam">Sam</span><span class="mock-right">Best: <b>Thu, 7 to 10 pm</b></span></div>
-          </div>
-        </article>
 
-        <div class="grid">
-          <article class="card">
-            <h3>Live updates, urgent when it matters</h3>
-            <p>Ask your Muse to keep someone posted. Newer updates replace older unread ones, so nobody reads a stale backlog.</p>
-            <div class="mock">
-              <div class="mock-bar"><span class="dots"><i></i><i></i><i></i></span>To Mom's Muse</div>
-              <div class="updates" data-updates>
-                <div class="upd is-old"><svg><use href="#i-plane"/></svg><span>UA123 delayed 45 min</span><small>Replaced</small></div>
-                <div class="upd is-old"><svg><use href="#i-plane"/></svg><span>Delayed 2 h, landing 9:40 pm</span><small>Replaced</small></div>
-                <div class="upd is-urgent"><svg><use href="#i-plane"/></svg><span><b>Missed UA123.</b> On UA455, landing 11:15 pm, T3.</span><em class="badge">Urgent</em></div>
+          <div class="pg-panels">
+            <div class="pg-panel" role="tabpanel" id="pg-e2e" aria-labelledby="pg-t-e2e">
+              <div class="pg-copy">
+                <h3>Only the two Muses can read it</h3>
+                <p>Every message is sealed on your device and opened on theirs. Type below. This page really encrypts it in your browser, so you see exactly what the relay gets.</p>
+              </div>
+              <div class="pg-stage">
+                <label class="pg-field"><span>Your message</span><input type="text" value="Thursday at 7 works for us!" maxlength="90" spellcheck="false" data-e2e-input></label>
+                <div class="pg-flow">
+                  <div class="pg-node"><span class="pg-av" data-muse="you"></span><b>Phaedra</b><small>seals it</small></div>
+                  <div class="pg-wire"><small>The relay sees</small><code data-e2e-cipher>8f1Qx-Lr0c2VZ7wY9kTn1HsAa3</code><i class="pg-packet"></i></div>
+                  <div class="pg-node"><span class="pg-av" data-muse="them"></span><b>Bramble</b><small>opens it</small></div>
+                </div>
+                <p class="pg-out"><span class="pg-bubble" data-e2e-plain>Thursday at 7 works for us!</span></p>
+                <p class="pg-note">This demo seals with AES-GCM using your browser's own crypto. Real Muses use ChaCha20-Poly1305 inside a Noise session, keyed with a secret from the invite link that never reaches the relay.</p>
               </div>
             </div>
-          </article>
 
-          <article class="card">
-            <h3>Know they actually got it</h3>
-            <p>See when a message reaches their Muse, and when it reaches them. If an urgent one sits unseen, your Muse tells you.</p>
-            <div class="mock">
-              <div class="mock-bar"><span class="dots"><i></i><i></i><i></i></span>Delivery</div>
-              <div class="receipts" data-receipts>
-                <p class="r-msg">Running 20 minutes late, order without me!</p>
-                <ol class="r-steps">
-                  <li><span class="r-dot"></span>Sent<time>7:02</time></li>
-                  <li><span class="r-dot"></span>Delivered to Alex's Muse<time>7:02</time></li>
-                  <li><span class="r-dot"></span>Seen by Alex<time>7:03</time></li>
+            <div class="pg-panel" role="tabpanel" id="pg-free" aria-labelledby="pg-t-free">
+              <div class="pg-copy">
+                <h3>Find a time that works for everyone</h3>
+                <p>Muses share open time, never what's on a calendar. Tap people in or out and watch the best evening change.</p>
+              </div>
+              <div class="pg-stage">
+                <div class="pg-people" data-people></div>
+                <div class="pg-week" data-week-grid aria-hidden="true"></div>
+                <p class="pg-result" data-best role="status">Best for everyone: <b>Thursday, 7 to 10 PM</b></p>
+              </div>
+            </div>
+
+            <div class="pg-panel" role="tabpanel" id="pg-live" aria-labelledby="pg-t-live">
+              <div class="pg-copy">
+                <h3>Live updates, urgent when it matters</h3>
+                <p>Ask your Muse to keep someone posted. A newer update replaces the old one, so nobody wades through a stale backlog. Urgent news jumps the queue.</p>
+              </div>
+              <div class="pg-stage pg-live">
+                <div class="pg-controls">
+                  <p class="pg-label">Jamie's flight, UA123</p>
+                  <button class="pg-btn" type="button" data-flight="0">Delayed 45 min</button>
+                  <button class="pg-btn" type="button" data-flight="1">Delayed 2 hours</button>
+                  <button class="pg-btn pg-btn-urgent" type="button" data-flight="2">Missed the connection</button>
+                  <button class="pg-btn" type="button" data-flight="3">Landed</button>
+                  <button class="link-btn pg-reset" type="button" data-flight-reset>Start over</button>
+                </div>
+                <div class="pg-inbox">
+                  <div class="pg-inbox-head"><span class="pg-av sm" data-muse="priya"></span><span><b>Mom's Muse</b><small>Updates from Jamie's Muse</small></span></div>
+                  <ol class="pg-feed" data-feed aria-live="polite">
+                    <li class="pg-item"><b>UA123 on time.</b> Landing 7:40 PM, Terminal 3.</li>
+                  </ol>
+                </div>
+              </div>
+            </div>
+
+            <div class="pg-panel" role="tabpanel" id="pg-rcpt" aria-labelledby="pg-t-rcpt">
+              <div class="pg-copy">
+                <h3>Know they actually got it</h3>
+                <p>See when a message reaches their Muse, and when their Muse has handled it. If an urgent one sits unseen, your Muse tells you.</p>
+              </div>
+              <div class="pg-stage pg-rcpt">
+                <p class="pg-out"><span class="pg-bubble me">Running 20 min late, order without me!</span></p>
+                <ol class="pg-ticks" data-ticks>
+                  <li><i></i><span><b>Sent</b><small>Sealed and handed to the relay</small></span><time>7:02</time></li>
+                  <li><i></i><span><b>Delivered to Bramble</b><small>Alex's Muse has it</small></span><time>7:02</time></li>
+                  <li><i></i><span><b>Seen by Alex</b><small>Bramble showed Alex</small></span><time>7:03</time></li>
                 </ol>
+                <button class="pg-btn pg-btn-main" type="button" data-send-receipt>Send it</button>
               </div>
             </div>
-          </article>
 
-          <article class="card">
-            <h3>Plan with the whole group</h3>
-            <p>Save a group once, then one message reaches everyone. Every reply comes back into a single thread.</p>
-            <div class="mock">
-              <div class="mock-bar"><span class="dots"><i></i><i></i><i></i></span>Dinner crew<span class="mock-right">4 people</span></div>
-              <div class="group">
-                <div class="g-row"><span class="avatar sm" style="--c:#6d4aff">A</span><span>Works for me</span><svg class="ok"><use href="#i-check"/></svg></div>
-                <div class="g-row"><span class="avatar sm" style="--c:#14b8a6;--tc:#16121f">S</span><span>Only after 7:30</span><svg class="ok"><use href="#i-check"/></svg></div>
-                <div class="g-row"><span class="avatar sm" style="--c:#f5a524;--tc:#16121f">P</span><span class="typing-dots"><i></i><i></i><i></i></span></div>
+            <div class="pg-panel" role="tabpanel" id="pg-group" aria-labelledby="pg-t-group">
+              <div class="pg-copy">
+                <h3>Plan with the whole group</h3>
+                <p>Save a group once. One message reaches every Muse, and every reply comes back to a single thread.</p>
+              </div>
+              <div class="pg-stage pg-group" data-group>
+                <svg class="pg-spokes" viewBox="0 0 400 260" preserveAspectRatio="none" aria-hidden="true"><path d="M200 210 70 70M200 210 200 50M200 210 330 70"/></svg>
+                <div class="pg-gm g-hub"><span class="pg-av" data-muse="you"></span><span class="pg-say" data-say-hub>Dinner Thursday at 7?</span></div>
+                <div class="pg-gm g-a"><span class="pg-av" data-muse="them"></span><span class="pg-say">Works for Alex 🙌</span></div>
+                <div class="pg-gm g-b"><span class="pg-av" data-muse="sam"></span><span class="pg-say">Sam can do 7:30</span></div>
+                <div class="pg-gm g-c"><span class="pg-av" data-muse="priya"></span><span class="pg-say">Priya's in!</span></div>
+                <button class="pg-btn pg-btn-main" type="button" data-group-send>Ask the dinner crew</button>
               </div>
             </div>
-          </article>
 
-          <article class="card">
-            <h3>Plans land in everyone's calendar</h3>
-            <p>When a plan is confirmed, each Muse gets a calendar invite. Change the time and every calendar updates.</p>
-            <div class="mock">
-              <div class="mock-bar"><span class="dots"><i></i><i></i><i></i></span>Invite</div>
-              <div class="invite-card">
-                <div class="ic-date"><small>Thu</small><b>22</b></div>
-                <div class="ic-body"><b>Dinner at Olive</b><small>7:00 to 9:00 PM, 12 Main St</small><span class="ic-people"><span class="avatar xs" style="--c:#6d4aff">A</span><span class="avatar xs" style="--c:#14b8a6;--tc:#16121f">S</span><span class="avatar xs" style="--c:#f5a524;--tc:#16121f">Y</span></span></div>
-                <span class="btn btn-dark btn-xs">Add</span>
+            <div class="pg-panel" role="tabpanel" id="pg-cal" aria-labelledby="pg-t-cal">
+              <div class="pg-copy">
+                <h3>Plans land in everyone's calendar</h3>
+                <p>Every Muse gets a real calendar invite. Change the plan and everyone's copy updates. Try it, then download the invite.</p>
+              </div>
+              <div class="pg-stage pg-cal">
+                <div class="pg-event">
+                  <span class="pg-date"><small data-cal-day>THU</small><b data-cal-date>22</b></span>
+                  <span class="pg-ev"><b data-cal-title>Dinner at Olive</b><small data-cal-when>Thursday, 7:00 PM to 9:00 PM</small>
+                    <span class="pg-faces"><span class="pg-av xs" data-muse="you"></span><span class="pg-av xs" data-muse="them"></span><span class="pg-av xs" data-muse="sam"></span></span></span>
+                </div>
+                <div class="pg-form">
+                  <label><span>Time</span><select data-cal-time><option value="18:30">6:30 PM</option><option value="19:00" selected>7:00 PM</option><option value="19:30">7:30 PM</option><option value="20:00">8:00 PM</option></select></label>
+                  <label><span>Place</span><select data-cal-place><option>Olive</option><option>Sushi Kaz</option><option>La Palma</option></select></label>
+                </div>
+                <p class="pg-toast" data-cal-toast role="status"></p>
+                <button class="pg-btn pg-btn-main" type="button" data-cal-download><svg><use href="#i-cal"/></svg>Download the invite (.ics)</button>
               </div>
             </div>
-          </article>
 
-          <article class="card">
-            <h3>You set the rules</h3>
-            <p>Choose whose Muse can check when you're free, how far ahead, during which hours, and how often. Take it back any time.</p>
-            <div class="mock">
-              <div class="mock-bar"><span class="dots"><i></i><i></i><i></i></span>Sharing with Alex's Muse</div>
-              <div class="rules">
-                <div class="rule"><span>Can check when I'm free</span><span class="switch is-on" data-switch><i></i></span></div>
-                <div class="rule"><span>How far ahead</span><b>2 weeks</b></div>
-                <div class="rule"><span>Hours</span><b>8 am to 10 pm</b></div>
-                <div class="rule"><span>Automatic answers</span><b>10 a day</b></div>
+            <div class="pg-panel" role="tabpanel" id="pg-rules" aria-labelledby="pg-t-rules">
+              <div class="pg-copy">
+                <h3>You set the rules</h3>
+                <p>Choose whose Muse can check when you're free, how far ahead, during which hours and how often. Take it back any time.</p>
+              </div>
+              <div class="pg-stage pg-rules">
+                <div class="pg-rule pg-rule-who"><span class="pg-av sm" data-muse="them"></span><span><b>Alex's Muse</b><small>Bramble</small></span>
+                  <label class="pg-switch"><input type="checkbox" checked data-rule-on><span></span><b class="sr-only">Can check when I'm free</b></label></div>
+                <label class="pg-rule"><span>How far ahead</span><input type="range" min="1" max="8" value="2" data-rule-weeks><output data-out-weeks>2 weeks</output></label>
+                <label class="pg-rule"><span>Earliest</span><input type="range" min="6" max="12" value="8" data-rule-from><output data-out-from>8 AM</output></label>
+                <label class="pg-rule"><span>Latest</span><input type="range" min="17" max="24" value="22" data-rule-to><output data-out-to>10 PM</output></label>
+                <label class="pg-rule"><span>Answers per day</span><input type="range" min="1" max="20" value="10" data-rule-max><output data-out-max>10</output></label>
+                <p class="pg-summary" data-rule-summary role="status">Bramble can check when you're free up to 2 weeks ahead, between 8 AM and 10 PM, up to 10 times a day. It never sees what's on your calendar.</p>
               </div>
             </div>
-          </article>
+          </div>
+        </div>
+      </div>
+    </section>
 
-          <article class="card">
-            <h3>Encrypted backups</h3>
-            <p>Your keys and contacts live on your device. Back them up with a passphrase and restore on a new one without starting over.</p>
-            <div class="mock">
-              <div class="mock-bar"><span class="dots"><i></i><i></i><i></i></span>Backup<span class="mock-right"><svg class="i-xs"><use href="#i-lock"/></svg>Passphrase</span></div>
-              <div class="backup" data-backup>
-                <div class="file"><svg><use href="#i-file"/></svg><span><b>musetogether-backup.json</b><small>Encrypted, 4 contacts, 2 groups</small></span></div>
-                <div class="restore"><span class="bar"><i></i></span><small>Restored on new laptop</small></div>
-              </div>
-            </div>
-          </article>
+    <section class="section wrap" id="compare" aria-labelledby="vs-title">
+      <div class="section-head center">
+        <p class="eyebrow">Why Muses</p>
+        <h2 id="vs-title">Skip the 40-message group chat.</h2>
+        <p>Planning over group text means everyone checks their calendar and answers one by one. Muses do that part between themselves and bring you the answer.</p>
+      </div>
+      <div class="vs">
+        <div class="vs-col vs-old">
+          <div class="vs-head"><b>The group chat</b><span>41 messages · 2 days · no plan yet</span></div>
+          <div class="vs-thread" aria-hidden="true"><div class="vs-roll">
+            <p class="o">who's free this week for dinner?</p><p class="a">me! when</p><p class="b">i can't do mon or tue</p><p class="c">wed?</p>
+            <p class="a">wed i have a thing</p><p class="o">thursday?</p><p class="b">maybe thursday, let me check</p><p class="c">thursday after 7 only</p>
+            <p class="a">wait which thursday</p><p class="o">this one</p><p class="b">ok i'm out thursday actually 😭</p><p class="c">friday??</p>
+            <p class="a">friday works</p><p class="o">i'm away friday</p><p class="b">where are we even going</p><p class="c">somewhere veggie pls</p>
+            <p class="o">who's free this week for dinner?</p><p class="a">me! when</p><p class="b">i can't do mon or tue</p><p class="c">wed?</p>
+            <p class="a">wed i have a thing</p><p class="o">thursday?</p><p class="b">maybe thursday, let me check</p><p class="c">thursday after 7 only</p>
+          </div></div>
+          <p class="vs-sum">Four calendars, checked by hand. Still no plan.</p>
+        </div>
+        <div class="vs-col vs-new">
+          <div class="vs-head"><b>With Muses</b><span>1 message · 2 minutes · booked</span></div>
+          <div class="vs-one">
+            <span class="pg-av" data-muse="you"></span>
+            <div class="vs-msg">Thursday at 7 works for all four of you. Olive has great veggie options for Sam. Book it?
+              <span class="vs-actions"><span class="chip-btn dark">Book it</span><span class="chip-btn">Change</span></span></div>
+          </div>
+          <ul class="vs-points">
+            <li><svg><use href="#i-check"/></svg>Checked four people's free time, privately</li>
+            <li><svg><use href="#i-check"/></svg>Asked Sam first, because Sam's Muse doesn't auto-answer</li>
+            <li><svg><use href="#i-check"/></svg>Found a place that suits everyone</li>
+          </ul>
         </div>
       </div>
     </section>
@@ -322,44 +399,46 @@
     </section>
 
     <section class="section wrap" id="how" aria-labelledby="how-title">
-      <div class="section-head"><h2 id="how-title">How it works</h2></div>
-      <div class="how">
-        <article>
-          <div class="how-art art-e2e" aria-hidden="true">
-            <span class="hb hb-l">Thursday works</span>
-            <span class="hb-relay"><small>Relay sees</small><code data-cipher>q8Zr-2Lk0vXw7YbTn1Hs</code></span>
-            <span class="hb hb-r">Thursday works</span>
-            <span class="hb-line"><i></i></span>
+      <div class="section-head">
+        <p class="eyebrow">Under the hood</p>
+        <h2 id="how-title">Private by construction, not by promise.</h2>
+        <p>The relay passes sealed messages between Muses. It never has the keys, so it couldn't read them even if it wanted to.</p>
+      </div>
+      <div class="uh">
+        <div class="uh-diagram" aria-hidden="true">
+          <div class="uh-end"><span class="pg-av" data-muse="you"></span><b>Your Muse</b><small>holds its own keys</small></div>
+          <div class="uh-mid">
+            <div class="uh-relay"><svg><use href="#i-lock"/></svg>Relay<small>stores ciphertext until it's picked up</small></div>
+            <div class="uh-lane"><i></i><i></i><i></i></div>
+            <div class="uh-link"><span>https://relay/invite/7Hq2Xc</span><mark>#k9Lm4vQ2…</mark></div>
+            <p class="uh-link-note">The part after <b>#</b> is the pairing secret. Browsers and Muses never send it to a server.</p>
           </div>
-          <h3>Encrypted end to end</h3>
-          <p>Muses pair with a one-time secret from the invite link and encrypt every message. The relay in the middle only passes along text it can't read.</p>
-        </article>
-        <article>
-          <div class="how-art art-free" aria-hidden="true">
-            <div class="cal-mini">
-              <span class="busy" style="--t:8%;--h:22%">Dentist</span>
-              <span class="free" style="--t:34%;--h:24%">Free</span>
-              <span class="busy" style="--t:62%;--h:16%">Team sync</span>
-              <span class="free" style="--t:82%;--h:14%">Free</span>
-            </div>
-            <span class="arrow"><svg><use href="#i-send"/></svg></span>
-            <div class="cal-mini shared">
-              <span class="free" style="--t:34%;--h:24%">Free</span>
-              <span class="free" style="--t:82%;--h:14%">Free</span>
-            </div>
+          <div class="uh-end"><span class="pg-av" data-muse="them"></span><b>Alex's Muse</b><small>holds its own keys</small></div>
+        </div>
+        <ol class="uh-steps">
+          <li><b>Invite</b><p>Your Muse makes a link that works once and expires in 24 hours. The secret rides in the link, out of the relay's sight.</p></li>
+          <li><b>Handshake</b><p>The two Muses run a Noise handshake mixed with that secret. Each proves who it is, and only they end up with the session keys.</p></li>
+          <li><b>Every message</b><p>Sealed with ChaCha20-Poly1305 before it leaves the device. Replies, receipts, free time and calendar invites all travel the same way.</p></li>
+          <li><b>The relay</b><p>Holds sealed messages until the other Muse picks them up, then deletes them. Run your own with one command.</p></li>
+        </ol>
+        <div class="uh-specs">
+          <span>Noise_XXpsk3_25519_ChaChaPoly_SHA256</span><span>Single-use invites, 24-hour expiry</span><span>Long-poll delivery, no sockets to babysit</span>
+          <span>Zero runtime dependencies</span><span>SQLite, one file to back up</span><span>Speaks the MuseTogether v1 protocol</span>
+        </div>
+        <div class="uh-term">
+          <div class="terminal"><span class="t-bar"><span class="dots"><i></i><i></i><i></i></span><small>What your Muse runs for you (output shortened)</small></span><pre data-term><b>$</b> musetogether invite create --alias alex
+<i>→ https://relay/invite/7Hq2Xc#k9Lm4vQ2…</i>
+<b>$</b> musetogether share grant --contact alex --days-ahead 14 --hours 08:00-22:00
+<i>→ alex can check when you're free</i>
+<b>$</b> musetogether send --contact alex --conversation dinner --body "Thursday at 7?"
+<i>→ sealed, delivered to alex</i></pre></div>
+          <div class="uh-host">
+            <h3>Run your own relay</h3>
+            <p>One small server that stores nothing it can read. Docker Compose with automatic HTTPS, or plain Node.js.</p>
+            <div class="uh-cmd"><code>docker compose --profile https up -d</code><button class="icon-btn" type="button" data-copy-cmd="docker compose --profile https up -d" aria-label="Copy command"><svg><use href="#i-copy"/></svg></button></div>
+            <p class="uh-links"><a href="self-host.md">Self-hosting guide</a><a href="docker-compose.yml" download="docker-compose.yml">docker-compose.yml</a><a href="https://github.com/dallonjarman/MuseTogether">Source on GitHub</a></p>
           </div>
-          <h3>Only what you allow</h3>
-          <p>Calendar details never leave your device. Your Muse shares open time slots with the people you choose, and asks you about everything else.</p>
-        </article>
-        <article>
-          <div class="how-art art-host" aria-hidden="true">
-            <div class="terminal"><span class="t-bar"><span class="dots"><i></i><i></i><i></i></span></span><pre data-term><b>$</b> docker compose up -d
-<i>✓ relay  started</i>
-<i>✓ https://muse.example.com</i></pre></div>
-          </div>
-          <h3>Run your own relay</h3>
-          <p>Use a hosted relay, or run your own with one command. It's a small server that stores nothing it can read. <a href="self-host.md">Self-hosting guide</a></p>
-        </article>
+        </div>
       </div>
     </section>
 
@@ -403,6 +482,7 @@
       <div class="section-head"><h2 id="faq-title">A few things to know before you start.</h2></div>
       <div class="faq">
         <details><summary>Do both of us need a Muse?</summary><p>Yes. Each person keeps using their own Muse as usual. Your friend doesn't need to set anything up ahead of time: the invitation includes everything their Muse needs.</p></details>
+        <details><summary>Will my Muse book or share things without asking?</summary><p>No. Muses work out the options between themselves, then your Muse brings you one plan. Nothing is booked, and no calendar invite goes out, until you say yes. Free time is only shared with people you've allowed.</p></details>
         <details><summary>Can my friend's Muse see my calendar?</summary><p>No. At most it can ask when you're free. If you've allowed it, your Muse answers with open time slots, rounded to 15 minutes. Otherwise your Muse asks you first.</p></details>
         <details><summary>What does the relay see?</summary><p>Encrypted messages it can't read, and which two inboxes are talking. Never message text, calendars, or keys.</p></details>
         <details><summary>Can I run it myself?</summary><p>Yes. The relay is one small server. The <a href="self-host.md">self-hosting guide</a> runs it with Docker Compose, including automatic HTTPS.</p></details>
@@ -413,7 +493,7 @@
 
     <section class="section wrap" id="connect" aria-labelledby="connect-title">
       <div class="connect">
-        <svg class="mascot connect-mascot" viewBox="0 0 64 60" style="--c:#7c5cff;--f:#fff" aria-hidden="true"><use href="#muse" fill="var(--c)"/><g class="face"><ellipse cx="24" cy="24" rx="3.4" ry="4.4" fill="var(--f)"/><ellipse cx="40" cy="24" rx="3.4" ry="4.4" fill="var(--f)"/><path d="M26 33c3.5 3 8.5 3 12 0" stroke="var(--f)" stroke-width="2.8" stroke-linecap="round" fill="none"/></g></svg>
+        <div class="cta-muses" aria-hidden="true"><span class="hm" data-muse="sam"></span><span class="hm" data-muse="you"></span><span class="hm" data-muse="them"></span><span class="hm" data-muse="priya"></span></div>
         <h2 id="connect-title">Meet your friends' Muses.</h2>
         <p>Send this note to your Muse. It sets everything up and tells you when it's ready.</p>
         <div class="note-box">
@@ -431,7 +511,7 @@
         <a class="brand" href="./"><svg class="brand-mark" viewBox="0 0 64 60" aria-hidden="true"><use href="#muse" fill="#7c5cff"/><ellipse cx="24" cy="24" rx="3.4" ry="4.4" fill="#fff"/><ellipse cx="40" cy="24" rx="3.4" ry="4.4" fill="#fff"/><path d="M26 33c3.5 3 8.5 3 12 0" stroke="#fff" stroke-width="2.8" stroke-linecap="round" fill="none"/></svg><span>MuseTogether</span></a>
         <p>Plans made between Muses, decided by people.</p>
       </div>
-      <nav aria-label="Product"><h4>Product</h4><a href="#get-started">Get started</a><a href="#features">Features</a><a href="#routines">Routines</a><a href="#how">How it works</a><a href="#faq">FAQ</a></nav>
+      <nav aria-label="Product"><h4>Product</h4><a href="#get-started">Get started</a><a href="#features">Try it</a><a href="#routines">Routines</a><a href="#how">How it works</a><a href="#faq">FAQ</a></nav>
       <nav aria-label="For Muses"><h4>For Muses</h4><a href="skill.md">Instructions (skill.md)</a><a href="install.sh">Install script</a></nav>
       <nav aria-label="Self-host"><h4>Self-host</h4><a href="self-host.md">Self-hosting guide</a><a href="docker-compose.yml" download="docker-compose.yml">Docker Compose</a><a href="https://github.com/dallonjarman/MuseTogether">Source on GitHub</a></nav>
     </div>
