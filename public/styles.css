@@ -325,8 +325,9 @@ p { margin: 0; }
 @keyframes tdot { 0%, 60%, 100% { opacity: 0.3; translate: 0 0; } 30% { opacity: 1; translate: 0 -3px; } }
 @keyframes msg-in { from { opacity: 0; translate: 0 8px; } to { opacity: 1; translate: 0 0; } }
 
-/* Tablets: cloud on top, two phones below; the group's four phones line up in their place. */
-@media (max-width: 1000px) {
+/* Below 1120px the sky between the phones gets too narrow for the group, so stack: cloud on top, two
+   phones below, and the group's four phones line up in their place. */
+@media (max-width: 1120px) {
   .stage { grid-template-columns: 1fr 1fr; grid-template-areas: "sky sky" "you them"; gap: 14px; padding: 20px 16px; border-radius: 24px; }
   .sky, .stage.is-group .sky { --row1: 30%; --row2: 80%; min-height: 300px; }
   .sky { grid-area: sky; }
@@ -576,7 +577,13 @@ h3 { font-size: 19px; font-weight: 600; letter-spacing: -0.02em; }
 .footer nav a { color: var(--muted); text-decoration: none; }
 .footer nav a:hover { color: var(--text); }
 .footer h4 { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
-.footer-wordmark { font-weight: 800; font-size: clamp(60px, 17vw, 240px); letter-spacing: -0.07em; line-height: 0.8; text-align: center; color: transparent; -webkit-text-stroke: 1.5px var(--line-strong); margin-top: 56px; translate: 0 12%; user-select: none; }
+/* Sized so the whole word fits the width, with a soft fill that fades out (outlined letters at tight
+   spacing cross over each other). */
+.footer-wordmark {
+  font-weight: 800; font-size: clamp(44px, 13.5vw, 230px); letter-spacing: -0.03em; line-height: 0.8; white-space: nowrap;
+  text-align: center; margin-top: 56px; translate: 0 12%; user-select: none;
+  background: linear-gradient(var(--line-strong), transparent 85%); -webkit-background-clip: text; background-clip: text; color: transparent;
+}
 @media (max-width: 760px) { .footer-cols { grid-template-columns: 1fr 1fr; } .footer-brand { grid-column: 1 / -1; } }
 
 /* ---------------------------------------------------------------- invite page */
