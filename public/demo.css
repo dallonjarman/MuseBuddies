@@ -75,23 +75,8 @@
 }
 .dm-label { margin: 24px 0 0; text-align: center; font-size: calc(13px * min(var(--inv, 1), 1.8)); font-weight: 600; color: #b9b5d6; }
 
-/* Dynamic Island: a pill that grows into a notification */
-.dm-island {
-  position: absolute; z-index: 6; top: 9px; left: 50%; translate: -50% 0; width: 88px; height: 26px; overflow: hidden;
-  border-radius: 20px; background: #000; box-shadow: 0 0 0 1px #111;
-  transition: width 550ms cubic-bezier(0.3, 1.35, 0.5, 1), height 550ms cubic-bezier(0.3, 1.35, 0.5, 1), border-radius 550ms;
-}
-.dm-island.is-open { width: 268px; height: 60px; border-radius: 28px; }
-.dm-island-in { display: flex; align-items: center; gap: 10px; height: 60px; padding: 0 14px; opacity: 0; transition: opacity 200ms; }
-.dm-island.is-open .dm-island-in { opacity: 1; transition-delay: 200ms; }
-.dm-island-icon { flex: none; width: 38px; height: 38px; display: grid; place-items: center; border-radius: 50%; background: #f3efe8; overflow: hidden; }
-.dm-island-muse { position: relative; width: 38px; height: 38px; }
-.dm-island-muse .dm-m { position: absolute; left: 50%; top: 1px; width: 44px; height: 44px; translate: -50% 0; }
-.dm-island-emoji { font-size: 20px; line-height: 1; }
-.dm-island-text { min-width: 0; display: grid; }
-.dm-island-text b { font-size: 13px; color: #fff; }
-.dm-island-text small { font-size: 12px; color: #a9a9b3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
+/* Dynamic Island */
+.dm-island { position: absolute; z-index: 6; top: 9px; left: 50%; translate: -50% 0; width: 88px; height: 26px; border-radius: 20px; background: #000; box-shadow: 0 0 0 1px #111; }
 .dm-status { display: flex; justify-content: space-between; align-items: center; height: 40px; padding: 8px 22px 0 30px; font-size: 13px; font-weight: 600; }
 .dm-sb { display: inline-flex; align-items: center; gap: 5px; }
 .dm-sb svg { width: 15px; height: 11px; fill: #fff; }
@@ -102,7 +87,7 @@
 .dm-btn svg { width: 20px; height: 20px; color: #fff; }
 .dm-btn i { position: absolute; top: 3px; left: 5px; width: 7px; height: 7px; border-radius: 50%; background: #3b82f6; }
 .dm-who { display: grid; justify-items: center; }
-.dm-avatar { position: relative; width: 60px; height: 60px; border-radius: 50%; overflow: hidden; background: #f3efe8; box-shadow: 0 0 0 2px #000; transition: box-shadow 400ms; }
+.dm-avatar { position: relative; width: 60px; height: 60px; border-radius: 50%; overflow: hidden; background: var(--avbg, #f3efe8); box-shadow: 0 0 0 2px #000; transition: box-shadow 400ms; }
 .dm-avatar .dm-m { position: absolute; left: 50%; top: 1px; width: 68px; height: 68px; translate: -50% 0; transition: opacity 400ms, scale 400ms; }
 .dm-avatar.is-away { box-shadow: 0 0 0 2px #000, 0 0 0 4px rgb(155 133 255 / 0.9); animation: dm-away 1.6s ease-in-out infinite; }
 .dm-avatar.is-away .dm-m { opacity: 0.18; scale: 0.8; }
@@ -164,34 +149,17 @@
 .dm-composer.has-text .dm-ph, .dm-composer.has-text .dm-mic { display: none; }
 .dm-composer.has-text .dm-send { display: grid; }
 
-.dm-tabs { flex: none; display: grid; grid-template-columns: repeat(5, 1fr); height: 54px; margin: 0 10px 12px; padding: 5px; border-radius: 999px; background: #1a1a1d; border: 1px solid #27272b; overflow: hidden; transition: height 380ms ease, margin 380ms ease, padding 380ms ease, opacity 250ms; }
+.dm-tabs { flex: none; display: grid; grid-template-columns: repeat(5, 1fr); height: 54px; margin: 0 10px 12px; padding: 5px; border-radius: 999px; background: #1a1a1d; border: 1px solid #27272b; }
 .dm-tabs span { display: grid; place-items: center; border-radius: 999px; color: #e6e6ea; }
 .dm-tabs .on { background: #000; }
 .dm-tabs svg { width: 22px; height: 22px; }
-.dm-screen.is-kb .dm-tabs { height: 0; margin-block: 0; padding-block: 0; opacity: 0; border-width: 0; }
 
-/* The keyboard slides up while someone types, pushing the conversation up like on a real phone. */
-.dm-kb { flex: none; height: 0; overflow: hidden; background: #262629; transition: height 420ms cubic-bezier(0.2, 0.8, 0.2, 1); }
-.dm-screen.is-kb .dm-kb { height: 206px; }
-.dm-kb-in { display: grid; gap: 9px; padding: 9px 4px 30px; }
-.dm-kr { display: flex; justify-content: center; gap: 5px; }
-.dm-kr1 { padding: 0 13px; }
-.dm-k { position: relative; flex: 1; display: grid; place-items: center; height: 34px; border-radius: 6px; background: #5a5a5f; color: #fff; font-size: 15px; box-shadow: 0 1px 0 #111; transition: background 120ms; }
-.dm-k-fn { flex: 1.4; background: #3d3d41; font-size: 12px; }
-.dm-kr3 .dm-k-fn { flex: 1.1; }
-.dm-k-space { flex: 4.4; font-size: 12px; background: #5a5a5f; }
-.dm-k[data-k="return"] { flex: 2; }
-.dm-k.is-down { background: #8a8a90; }
-.dm-kr0 .dm-k.is-down::after, .dm-kr1 .dm-k.is-down::after, .dm-kr2 .dm-k:not(.dm-k-fn).is-down::after {
-  content: attr(data-k); position: absolute; bottom: 100%; left: 50%; translate: -50% 0; display: grid; place-items: center;
-  width: 38px; height: 46px; border-radius: 8px; background: #8a8a90; font-size: 24px; box-shadow: 0 6px 12px rgb(0 0 0 / 0.4);
-}
 .dm-home { position: absolute; bottom: 7px; left: 50%; translate: -50% 0; width: 110px; height: 4px; border-radius: 4px; background: rgb(255 255 255 / 0.85); z-index: 4; }
 
 /* ---------------------------------------------------------------- the flying Muses */
 
 .dm-m { display: block; }
-.dm-eyes { transform-origin: 50px 54px; animation: dm-blink 4.6s var(--blink, 0s) infinite; }
+.dm-eyes { transform-box: fill-box; transform-origin: center; animation: dm-blink 4.6s var(--blink, 0s) infinite; }
 @keyframes dm-blink { 0%, 44%, 48%, 100% { transform: scaleY(1); } 46% { transform: scaleY(0.1); } }
 .dm-happy { opacity: 0; }
 .is-happy .dm-eyes { opacity: 0; }
