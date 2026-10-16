@@ -14,6 +14,7 @@
   <link rel="stylesheet" href="styles.css">
   <script src="site.js" defer></script>
   <script src="sky.js" defer></script>
+  <script src="alive.js" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
@@ -86,6 +87,30 @@
           <p class="aside">Everyone's Muse gets the details and a calendar invite.</p>
         </div>
       </div>
+      <button class="replay" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+        Play it again
+      </button>
+    </section>
+
+    <section class="section wrap" id="find-a-time" aria-labelledby="time-title">
+      <div class="section-head">
+        <h2 id="time-title">Three calendars. One evening that works.</h2>
+        <p class="lede">Each Muse shares only when its person is free, never what's on the calendar. Yours finds where everyone's free time overlaps.</p>
+      </div>
+      <figure class="week">
+        <div class="week-grid" role="img" aria-label="Free evenings next week. You, Alex and Sam are all free on Thursday from 7 to 10 pm, and on no other evening.">
+          <div class="hours" aria-hidden="true"><span style="--top:0.0%">5 pm</span><span style="--top:33.333%">7 pm</span><span style="--top:66.667%">9 pm</span><span style="--top:100.0%">11 pm</span></div>
+          <div class="day"><span class="day-name">Mon</span><div class="day-track"><span class="bar you" style="--top:0.0%;--h:33.333%;--i:0"></span><span class="bar sam" style="--top:33.333%;--h:66.667%;--i:0"></span></div></div><div class="day"><span class="day-name">Tue</span><div class="day-track"><span class="bar you" style="--top:50.0%;--h:50.0%;--i:1"></span><span class="bar alex" style="--top:0.0%;--h:33.333%;--i:1"></span></div></div><div class="day"><span class="day-name">Wed</span><div class="day-track"></div></div><div class="day is-match"><span class="day-name">Thu</span><div class="day-track"><span class="bar you" style="--top:16.667%;--h:83.333%;--i:3"></span><span class="bar alex" style="--top:33.333%;--h:66.667%;--i:3"></span><span class="bar sam" style="--top:0.0%;--h:83.333%;--i:3"></span><span class="overlap" style="--top:33.333%;--h:50.0%"></span></div></div><div class="day"><span class="day-name">Fri</span><div class="day-track"><span class="bar you" style="--top:0.0%;--h:66.667%;--i:4"></span><span class="bar sam" style="--top:50.0%;--h:50.0%;--i:4"></span></div></div><div class="day"><span class="day-name">Sat</span><div class="day-track"><span class="bar you" style="--top:0.0%;--h:100.0%;--i:5"></span><span class="bar alex" style="--top:16.667%;--h:50.0%;--i:5"></span><span class="bar sam" style="--top:66.667%;--h:33.333%;--i:5"></span></div></div><div class="day"><span class="day-name">Sun</span><div class="day-track"><span class="bar alex" style="--top:0.0%;--h:50.0%;--i:6"></span></div></div>
+        </div>
+        <p class="week-result"><strong>Everyone's free Thursday, 7 to 10 pm.</strong> Your Muse suggests dinner at 7.</p>
+        <figcaption class="legend">
+          <span class="key you">You</span>
+          <span class="key alex">Alex</span>
+          <span class="key sam">Sam</span>
+          <span class="key everyone">Everyone free</span>
+        </figcaption>
+      </figure>
     </section>
 
     <section class="section wrap" aria-labelledby="steps-title">
@@ -103,6 +128,12 @@
       <div class="section-head">
         <h2 id="privacy-title">What leaves your device, and what never does.</h2>
         <p class="lede">Messages are encrypted before they leave your Muse. The relay in the middle only ever sees scrambled text it can't read.</p>
+      </div>
+      <div class="wire" aria-hidden="true">
+        <div class="wire-end theirs"><span class="wire-who">Alex's Muse writes</span><p class="wire-text" data-from>Thursday after 7 works.</p></div>
+        <div class="wire-mid"><span class="wire-who">The relay sees</span><p class="wire-cipher" data-relay>Vx0q-7HhK2mPZr_8sYtD3nBfW1cLeJ9uGaQ4oRk6</p></div>
+        <div class="wire-end mine"><span class="wire-who">Your Muse reads</span><p class="wire-text" data-to>Thursday after 7 works.</p></div>
+        <div class="wire-line"><span class="wire-dot"></span></div>
       </div>
       <div class="ledger">
         <div class="shares">
