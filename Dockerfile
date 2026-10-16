@@ -6,7 +6,7 @@ WORKDIR /app
 ENV NODE_ENV=production PORT=8787 HOST=0.0.0.0 DATABASE_PATH=/data/relay.db
 
 # The relay has no runtime dependencies: just the source and the website.
-COPY package.json self-host.md ./
+COPY package.json self-host.md docker-compose.yml ./
 COPY scripts ./scripts
 COPY src ./src
 COPY public ./public

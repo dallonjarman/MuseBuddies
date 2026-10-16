@@ -17,8 +17,14 @@ const CONTENT_TYPES: Record<string, string> = {
   ".sh": "text/x-shellscript; charset=utf-8",
   ".svg": "image/svg+xml",
   ".gz": "application/gzip",
-  ".txt": "text/plain; charset=utf-8"
+  ".txt": "text/plain; charset=utf-8",
+  ".yml": "application/yaml; charset=utf-8"
 };
+
+// Files served from the repository root (so GitHub renders and links them too), and which of
+// them the browser should save rather than display.
+const ROOT_FILES = new Set(["self-host.md", "docker-compose.yml"]);
+const DOWNLOADS = new Set(["docker-compose.yml"]);
 
 export interface ServerOptions {
   relay: Relay;
@@ -77,9 +83,9 @@ function sendJson(res: http.ServerResponse, status: number, body: unknown): void
 function serveStatic(res: http.ServerResponse, pathname: string, publicUrl: string): boolean {
   let file = pathname === "/" ? "index.html" : pathname.slice(1);
   if (/^invite\/[^/]+$/.test(file)) file = "invite.html";
-  // The self-hosting guide lives at the repository root so GitHub renders it too.
-  const target = file === "self-host.md" ? path.join(rootDir, "self-host.md") : path.resolve(publicDir, file);
-  if ((file !== "self-host.md" && !target.startsWith(publicDir + path.sep)) || !fs.existsSync(target) || !fs.statSync(target).isFile()) return false;
+  const fromRoot = ROOT_FILES.has(file);
+  const target = fromRoot ? path.join(rootDir, file) : path.resolve(publicDir, file);
+  if ((!fromRoot && !target.startsWith(publicDir + path.sep)) || !fs.existsSync(target) || !fs.statSync(target).isFile()) return false;
   const ext = path.extname(target);
   let body: Buffer | string = fs.readFileSync(target);
   if ([".html", ".md", ".sh", ".js"].includes(ext)) body = body.toString("utf8").replaceAll("{{PUBLIC_URL}}", publicUrl);
@@ -87,7 +93,8 @@ function serveStatic(res: http.ServerResponse, pathname: string, publicUrl: stri
     "Content-Type": CONTENT_TYPES[ext] ?? "application/octet-stream",
     "Cache-Control": ext === ".html" ? "no-cache" : "public, max-age=300",
     "Referrer-Policy": "no-referrer",
-    "X-Content-Type-Options": "nosniff"
+    "X-Content-Type-Options": "nosniff",
+    ...(DOWNLOADS.has(file) ? { "Content-Disposition": `attachment; filename="${file}"` } : {})
   });
   res.end(body);
   return true;
