@@ -185,7 +185,7 @@ p { margin: 0; }
   box-shadow: 0 0 0 1.5px #3b3b42, var(--shadow-lg);
 }
 .island { position: absolute; z-index: 3; top: 8px; left: 50%; translate: -50% 0; width: 84px; height: 24px; border-radius: 20px; background: #000; box-shadow: inset 0 0 0 1px #151517; }
-.status { display: flex; justify-content: space-between; align-items: center; height: 38px; padding: 6px 20px 0 28px; font-size: 13px; font-weight: 600; }
+.screen .status { display: flex; justify-content: space-between; align-items: center; height: 38px; padding: 6px 20px 0 28px; font-size: 13px; font-weight: 600; }
 .sb { display: inline-flex; align-items: center; gap: 5px; }
 .sb svg { width: 15px; height: 11px; fill: #fff; }
 .batt { background: #fff; color: #000; font-size: 9.5px; font-weight: 700; line-height: 13px; padding: 0 4px; border-radius: 4px; }
@@ -257,9 +257,9 @@ p { margin: 0; }
 .sky { --row1: 38%; --row2: 72%; position: relative; min-height: 420px; transition: --row1 700ms ease, --row2 700ms ease; }
 .stage.is-group .sky { --row1: 15%; --row2: 50%; }
 .puff { position: absolute; width: 90px; fill: var(--cloud); opacity: 0.75; animation: drift 16s ease-in-out infinite alternate; }
-.p1 { top: 6%; left: 2%; }
-.p2 { bottom: 9%; right: 0; width: 72px; animation-delay: -6s; }
-.p3 { top: 15%; right: 14%; width: 52px; opacity: 0.5; animation-delay: -11s; }
+.puff.p1 { top: 6%; left: 2%; }
+.puff.p2 { bottom: 9%; right: 0; width: 72px; animation-delay: -6s; }
+.puff.p3 { top: 15%; right: 14%; width: 52px; opacity: 0.5; animation-delay: -11s; }
 @keyframes drift { from { translate: -14px 0; } to { translate: 18px 4px; } }
 .cloud { position: absolute; inset: 0; margin: auto; width: min(100%, 300px); height: fit-content; animation: bob 7s ease-in-out infinite; transition: bottom 700ms ease, width 700ms ease; }
 .stage.is-group .cloud { bottom: 40%; width: min(100%, 240px); }
