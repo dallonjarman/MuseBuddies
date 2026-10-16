@@ -1,0 +1,6 @@
+node_modules/
+data/
+public/client.tar.gz
+*.db
+*.db-wal
+*.db-shm

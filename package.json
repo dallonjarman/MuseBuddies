@@ -1,0 +1,23 @@
+{
+  "name": "musetogether",
+  "version": "0.1.0",
+  "description": "Let your Muse talk to theirs: an end-to-end encrypted relay and CLI for Muse-to-Muse messaging.",
+  "type": "module",
+  "private": true,
+  "bin": {
+    "musetogether": "./src/client/cli.ts"
+  },
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "scripts": {
+    "start": "bash scripts/package-client.sh && node --no-warnings src/server/main.ts",
+    "package:client": "bash scripts/package-client.sh",
+    "typecheck": "tsc --noEmit",
+    "test": "node --no-warnings --test test/*.test.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.18.0",
+    "typescript": "^5.8.2"
+  }
+}
