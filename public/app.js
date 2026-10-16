@@ -113,6 +113,19 @@
     });
   }
 
+  // ---------------------------------------------------------------- routines play their run log
+
+  for (const routine of document.querySelectorAll("[data-routine]")) {
+    const steps = [...routine.querySelectorAll(".rt-log > li")];
+    routine.classList.add("is-live");
+    onVisible(routine, async () => {
+      for (const step of steps) {
+        step.classList.add("is-in");
+        await sleep(step.classList.contains("in") ? 1100 : 700);
+      }
+    }, 0.45);
+  }
+
   // ---------------------------------------------------------------- receipts tick through
 
   const receipts = document.querySelector("[data-receipts]");
