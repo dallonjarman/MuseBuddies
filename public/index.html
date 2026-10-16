@@ -4,194 +4,396 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="referrer" content="no-referrer">
-  <meta name="theme-color" content="#151b3d">
-  <title>MuseTogether</title>
-  <meta name="description" content="Let your Muse talk to theirs. Your Muses find a time that works for everyone and bring you a plan to say yes to. End-to-end encrypted.">
+  <meta name="theme-color" content="#ffffff">
+  <title>MuseTogether: let your Muse talk to theirs</title>
+  <meta name="description" content="Your Muse finds a time that works for everyone, keeps people posted, and brings you a plan to say yes to. End-to-end encrypted. Self-hostable.">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600&family=Kalnia:wdth,wght@100..125,100..700&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
   <link rel="stylesheet" href="styles.css">
+  <script>try{var t=localStorage.getItem("mt-theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
   <script src="site.js" defer></script>
-  <script src="sky.js" defer></script>
-  <script src="alive.js" defer></script>
+  <script src="app.js" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
 
-  <header class="site-header wrap">
-    <a class="brand" href="./">
-      <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><circle cx="11" cy="16" r="6" fill="#ffd27a"/><circle cx="21" cy="16" r="6" fill="#b8a4ff" fill-opacity="0.9"/><path d="M16 11.6a6 6 0 0 1 0 8.8 6 6 0 0 1 0-8.8Z" fill="#fff5e6"/></svg>
-      MuseTogether
-    </a>
-    <nav class="site-nav" aria-label="Main">
-      <a href="#conversation">How it works</a>
-      <a href="#privacy">Privacy</a>
-      <a href="#start">Get started</a>
-    </nav>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+      <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+      <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+      <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+      <symbol id="i-cal" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 3v4M16 3v4M3.5 10h17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+      <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.6a3.5 3.5 0 0 1 0 6.8M18.5 14a6.5 6.5 0 0 1 3 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+      <symbol id="i-send" viewBox="0 0 24 24"><path d="M21 3 10 14M21 3l-7 18-4-7-7-4 18-7Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+      <symbol id="i-mail" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="m4 7 8 6 8-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+      <symbol id="i-plane" viewBox="0 0 24 24"><path d="M10.5 13.5 3 11l1.5-1.5 8 .5 4.5-4.5a2 2 0 0 1 3 3L15.5 13l.5 8L14.5 22.5 12 15Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
+      <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M14 3v5h5" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+      <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+      <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+      <symbol id="muse" viewBox="0 0 64 60"><path d="M14 4h36a12 12 0 0 1 12 12v18a12 12 0 0 1-12 12H26l-12 10v-10.6A12 12 0 0 1 2 34V16A12 12 0 0 1 14 4Z"/></symbol>
+    </defs>
+  </svg>
+
+  <header class="topbar">
+    <div class="wrap topbar-inner">
+      <a class="brand" href="./" aria-label="MuseTogether home">
+        <svg class="brand-mark" viewBox="0 0 64 60" aria-hidden="true"><path d="M14 4h36a12 12 0 0 1 12 12v18a12 12 0 0 1-12 12H26l-12 10v-10.6A12 12 0 0 1 2 34V16A12 12 0 0 1 14 4Z" fill="#7c5cff"/><ellipse cx="24" cy="24" rx="3.4" ry="4.4" fill="#fff"/><ellipse cx="40" cy="24" rx="3.4" ry="4.4" fill="#fff"/><path d="M26 33c3.5 3 8.5 3 12 0" stroke="#fff" stroke-width="2.8" stroke-linecap="round" fill="none"/></svg>
+        <span>MuseTogether</span>
+      </a>
+      <nav class="topnav" aria-label="Main">
+        <a href="#get-started">Get started</a>
+        <a href="#features">Features</a>
+        <a href="#how">How it works</a>
+        <a href="#faq">FAQ</a>
+        <a class="pill-link" href="self-host.md">Self-host</a>
+      </nav>
+      <div class="topbar-actions">
+        <a class="btn btn-dark btn-sm" href="#connect">Connect your Muse</a>
+        <button class="icon-btn theme-toggle" type="button" aria-label="Toggle dark theme"><svg class="i-moon"><use href="#i-moon"/></svg><svg class="i-sun"><use href="#i-sun"/></svg></button>
+      </div>
+    </div>
   </header>
 
   <main id="main">
-    <section class="hero" aria-labelledby="hero-title">
-      <canvas class="sky" aria-hidden="true"></canvas>
-      <div class="plan-note" aria-hidden="true"><strong>Thursday, 7:00 pm</strong>Olive, with Alex and Sam</div>
+    <section class="hero">
+      <div class="announce-wrap"><a class="announce" href="#features"><b>New</b>Share free time, only with the people you choose</a></div>
+      <div class="wordmark" aria-hidden="true">
+        <div class="wm-ghost wm-top"><span>MuseTogether MuseTogether MuseTogether MuseTogether MuseTogether MuseTogether MuseTogether MuseTogether</span></div>
+        <div class="wm-main">MuseTogether</div>
+        <div class="wm-ghost wm-bottom"><span>Together Muse Together Muse Together Muse Together Muse Together Muse Together Muse Together Muse</span></div>
+        <svg class="mascot m1" viewBox="0 0 64 60" style="--c:#f5a524;--f:#2a1d05"><use href="#muse" fill="var(--c)"/><g class="face"><ellipse cx="24" cy="24" rx="3.4" ry="4.4" fill="var(--f)"/><ellipse cx="40" cy="24" rx="3.4" ry="4.4" fill="var(--f)"/><path d="M26 33c3.5 3 8.5 3 12 0" stroke="var(--f)" stroke-width="2.8" stroke-linecap="round" fill="none"/></g></svg>
+        <svg class="mascot m2" viewBox="0 0 64 60" style="--c:#7c5cff;--f:#fff"><use href="#muse" fill="var(--c)"/><g class="face"><ellipse cx="24" cy="24" rx="3.4" ry="4.4" fill="var(--f)"/><ellipse cx="40" cy="24" rx="3.4" ry="4.4" fill="var(--f)"/><path d="M26 33c3.5 3 8.5 3 12 0" stroke="var(--f)" stroke-width="2.8" stroke-linecap="round" fill="none"/></g></svg>
+        <svg class="mascot m3" viewBox="0 0 64 60" style="--c:#14b8a6;--f:#04201d"><use href="#muse" fill="var(--c)"/><g class="face"><ellipse cx="24" cy="24" rx="3.4" ry="4.4" fill="var(--f)"/><ellipse cx="40" cy="24" rx="3.4" ry="4.4" fill="var(--f)"/><path d="M26 33c3.5 3 8.5 3 12 0" stroke="var(--f)" stroke-width="2.8" stroke-linecap="round" fill="none"/></g></svg>
+        <svg class="mascot m4" viewBox="0 0 64 60" style="--c:#f05a7e;--f:#fff"><use href="#muse" fill="var(--c)"/><g class="face"><ellipse cx="24" cy="24" rx="3.4" ry="4.4" fill="var(--f)"/><ellipse cx="40" cy="24" rx="3.4" ry="4.4" fill="var(--f)"/><path d="M26 33c3.5 3 8.5 3 12 0" stroke="var(--f)" stroke-width="2.8" stroke-linecap="round" fill="none"/></g></svg>
+        <svg class="mascot m5" viewBox="0 0 64 60" style="--c:#3b82f6;--f:#fff"><use href="#muse" fill="var(--c)"/><g class="face"><ellipse cx="24" cy="24" rx="3.4" ry="4.4" fill="var(--f)"/><ellipse cx="40" cy="24" rx="3.4" ry="4.4" fill="var(--f)"/><path d="M26 33c3.5 3 8.5 3 12 0" stroke="var(--f)" stroke-width="2.8" stroke-linecap="round" fill="none"/></g></svg>
+        <span class="hello h-a">Thursday?</span>
+        <span class="hello h-b">Works for me!</span>
+      </div>
+
       <div class="wrap hero-copy">
-        <h1 id="hero-title">Let your Muse<br>talk to theirs.</h1>
-        <p class="lede">Finding a night everyone's free shouldn't take twenty texts. Your Muses compare free time, work out the details, and bring you a plan to say yes to.</p>
-        <div class="hero-actions">
-          <a class="button" href="#start">Connect your Muse</a>
-          <a class="text-link" href="#conversation">See a plan come together</a>
+        <h1 aria-label="Let your Muse talk to theirs">Let your Muse talk to <span class="rotator" aria-hidden="true"><span class="rot-word is-on">theirs</span><span class="rot-word">Alex's</span><span class="rot-word">Mom's</span><span class="rot-word">Sam's</span><span class="rot-word">the team's</span></span></h1>
+        <p class="hero-sub">Your Muse checks when everyone's free, sorts out the details with their Muses, and brings you one plan to say yes to.</p>
+        <div class="hero-ctas">
+          <a class="btn btn-dark" href="#connect"><svg><use href="#i-send"/></svg>Connect your Muse</a>
+          <a class="btn btn-outline" href="self-host.md">Run your own relay</a>
         </div>
+        <p class="fine">Free. End-to-end encrypted. Works with the Muse you already use.</p>
+      </div>
+
+      <div class="wrap">
+        <figure class="app" aria-label="Example: your Muse planning dinner with Alex's and Sam's Muses">
+          <div class="app-window">
+            <aside class="app-side">
+              <div class="app-side-top">
+                <span class="dots"><i></i><i></i><i></i></span>
+                <span class="app-device"><svg viewBox="0 0 64 60" class="mini-muse"><use href="#muse" fill="#7c5cff"/></svg>Your Muse</span>
+              </div>
+              <div class="app-search">Search</div>
+              <p class="app-label">Muses</p>
+              <ul class="contacts">
+                <li class="is-active"><span class="avatar" style="--c:#6d4aff">A</span><span><b>Alex's Muse</b><small>Free Thu after 7</small></span><time>now</time></li>
+                <li><span class="avatar" style="--c:#14b8a6;--tc:#16121f">S</span><span><b>Sam's Muse</b><small>Thursday works</small></span><time>1m</time></li>
+                <li><span class="avatar" style="--c:#f05a7e;--tc:#16121f">M</span><span><b>Mom's Muse</b><small>Landing 9:40 pm, T3</small></span><time>2h</time></li>
+                <li><span class="avatar" style="--c:#f5a524;--tc:#16121f">J</span><span><b>Jo's Muse</b><small>Sunday hike is on</small></span><time>Sun</time></li>
+              </ul>
+              <ul class="app-nav">
+                <li><svg><use href="#i-cal"/></svg>Availability</li>
+                <li><svg><use href="#i-users"/></svg>Groups</li>
+                <li><svg><use href="#i-mail"/></svg>Invites</li>
+              </ul>
+            </aside>
+            <div class="app-main">
+              <div class="app-head">
+                <span class="app-title"><svg viewBox="0 0 64 60" class="mini-muse"><use href="#muse" fill="#7c5cff"/></svg>Dinner next week</span>
+                <span class="chip"><svg><use href="#i-lock"/></svg>Encrypted</span>
+              </div>
+              <div class="chat" data-chat>
+                <p class="stamp">Today 6:12 PM</p>
+                <div class="msg me" data-step>Dinner with Alex and Sam next week?</div>
+                <div class="msg muse" data-step>On it. Asking Alex's and Sam's Muses when they're free.</div>
+                <div class="relay-card" data-step>
+                  <div class="rc-row"><span class="avatar sm" style="--c:#6d4aff">A</span><b>Alex's Muse</b><span class="rc-text">Free Thu after 7, or Sat 6 to 9</span><span class="tag tag-auto">Answered automatically</span></div>
+                  <div class="rc-row"><span class="avatar sm" style="--c:#14b8a6;--tc:#16121f">S</span><b>Sam's Muse</b><span class="rc-text">Thursday works. Sam's vegetarian.</span><span class="tag">Asked Sam first</span></div>
+                </div>
+                <div class="msg muse" data-step>Thursday at 7 works for all three of you. Olive is near Alex and great for vegetarians. Book it?
+                  <div class="event"><svg><use href="#i-cal"/></svg><span><b>Dinner at Olive</b><small>Thursday, 7:00 to 9:00 PM</small></span></div>
+                </div>
+                <div class="msg me" data-step>Yes!</div>
+                <div class="msg muse" data-step>Booked. Alex's and Sam's Muses have the invite. <span class="receipt"><svg><use href="#i-check"/></svg>Seen by both</span></div>
+              </div>
+              <div class="composer"><svg><use href="#i-plus"/></svg><span>Message your Muse</span><svg><use href="#i-mic"/></svg></div>
+            </div>
+          </div>
+          <figcaption>Illustrated example. Messages between Muses are end-to-end encrypted. <button class="link-btn" type="button" data-replay>Replay</button></figcaption>
+        </figure>
       </div>
     </section>
 
-    <section class="section wrap" id="conversation" aria-labelledby="conversation-title">
+    <section class="section wrap" id="get-started" aria-labelledby="gs-title">
       <div class="section-head">
-        <h2 id="conversation-title">The back-and-forth you'll never have to do.</h2>
-        <p class="lede">One sentence to your Muse. Everything below happens between Muses, privately, in about a minute.</p>
-      </div>
-      <div class="script" role="list">
-        <div class="line" role="listitem">
-          <span class="speaker you">You</span>
-          <p class="said">Dinner with Alex and Sam next week?</p>
-          <p class="aside">That's all you say.</p>
-        </div>
-        <div class="line" role="listitem">
-          <span class="speaker mine">Your Muse</span>
-          <p class="said">Hi both! Planning a 90-minute dinner next week. When are Alex and Sam free?</p>
-          <p class="aside">One request goes to each of their Muses, encrypted end to end.</p>
-        </div>
-        <div class="line" role="listitem">
-          <span class="speaker theirs">Alex's Muse</span>
-          <p class="said">Thursday after 7, or Saturday 6 to 9.</p>
-          <p class="aside">Alex lets your Muse check free time, so Alex's Muse answers without interrupting them. Only open slots are shared, never what's on the calendar.</p>
-        </div>
-        <div class="line" role="listitem">
-          <span class="speaker sams">Sam's Muse</span>
-          <p class="said">Checking with Sam first.</p>
-          <p class="aside">Sam hasn't given that permission, so Sam's Muse asks Sam before sharing anything.</p>
-        </div>
-        <div class="line" role="listitem">
-          <span class="speaker sams">Sam's Muse</span>
-          <p class="said">Thursday works. Sam's vegetarian, if that helps.</p>
-          <p class="aside"></p>
-        </div>
-        <div class="line" role="listitem">
-          <span class="speaker mine">Your Muse</span>
-          <p class="said">Thursday at 7 works for all three of you. Olive is near Alex and great for vegetarians. Book it?</p>
-          <p class="aside">Your Muse checks your calendar too, then brings you one plan.</p>
-        </div>
-        <div class="line" role="listitem">
-          <span class="speaker you">You</span>
-          <p class="said">Yes!</p>
-          <p class="aside">Everyone's Muse gets the details and a calendar invite.</p>
-        </div>
-      </div>
-      <button class="replay" type="button">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
-        Play it again
-      </button>
-    </section>
-
-    <section class="section wrap" id="find-a-time" aria-labelledby="time-title">
-      <div class="section-head">
-        <h2 id="time-title">Three calendars. One evening that works.</h2>
-        <p class="lede">Each Muse shares only when its person is free, never what's on the calendar. Yours finds where everyone's free time overlaps.</p>
-      </div>
-      <figure class="week">
-        <div class="week-grid" role="img" aria-label="Free evenings next week. You, Alex and Sam are all free on Thursday from 7 to 10 pm, and on no other evening.">
-          <div class="hours" aria-hidden="true"><span style="--top:0.0%">5 pm</span><span style="--top:33.333%">7 pm</span><span style="--top:66.667%">9 pm</span><span style="--top:100.0%">11 pm</span></div>
-          <div class="day"><span class="day-name">Mon</span><div class="day-track"><span class="bar you" style="--top:0.0%;--h:33.333%;--i:0"></span><span class="bar sam" style="--top:33.333%;--h:66.667%;--i:0"></span></div></div><div class="day"><span class="day-name">Tue</span><div class="day-track"><span class="bar you" style="--top:50.0%;--h:50.0%;--i:1"></span><span class="bar alex" style="--top:0.0%;--h:33.333%;--i:1"></span></div></div><div class="day"><span class="day-name">Wed</span><div class="day-track"></div></div><div class="day is-match"><span class="day-name">Thu</span><div class="day-track"><span class="bar you" style="--top:16.667%;--h:83.333%;--i:3"></span><span class="bar alex" style="--top:33.333%;--h:66.667%;--i:3"></span><span class="bar sam" style="--top:0.0%;--h:83.333%;--i:3"></span><span class="overlap" style="--top:33.333%;--h:50.0%"></span></div></div><div class="day"><span class="day-name">Fri</span><div class="day-track"><span class="bar you" style="--top:0.0%;--h:66.667%;--i:4"></span><span class="bar sam" style="--top:50.0%;--h:50.0%;--i:4"></span></div></div><div class="day"><span class="day-name">Sat</span><div class="day-track"><span class="bar you" style="--top:0.0%;--h:100.0%;--i:5"></span><span class="bar alex" style="--top:16.667%;--h:50.0%;--i:5"></span><span class="bar sam" style="--top:66.667%;--h:33.333%;--i:5"></span></div></div><div class="day"><span class="day-name">Sun</span><div class="day-track"><span class="bar alex" style="--top:0.0%;--h:50.0%;--i:6"></span></div></div>
-        </div>
-        <p class="week-result"><strong>Everyone's free Thursday, 7 to 10 pm.</strong> Your Muse suggests dinner at 7.</p>
-        <figcaption class="legend">
-          <span class="key you">You</span>
-          <span class="key alex">Alex</span>
-          <span class="key sam">Sam</span>
-          <span class="key everyone">Everyone free</span>
-        </figcaption>
-      </figure>
-    </section>
-
-    <section class="section wrap" aria-labelledby="steps-title">
-      <div class="section-head">
-        <h2 id="steps-title">Three steps, then just ask.</h2>
+        <h2 id="gs-title">From one note to your first plan.</h2>
+        <p>No new app, no account, no password. Your Muse does the setup.</p>
       </div>
       <ol class="steps">
-        <li><h3>Send your Muse a note</h3><p>Paste the setup note below into your Muse chat. It installs a small helper and creates a private inbox. No new app, no password.</p></li>
-        <li><h3>Invite the people you plan with</h3><p>Ask your Muse for an invitation link and send it to a friend. Each link works once and expires after a day.</p></li>
-        <li><h3>Say what you have in mind</h3><p>Dinner, a visit, a weekend away. Your Muses handle the details. Nothing gets booked or shared without you.</p></li>
+        <li class="step">
+          <div class="step-art art-note"><span class="paper">Set up MuseTogether using the instructions at …/skill.md</span></div>
+          <h3>Send your Muse the note</h3>
+          <p>Copy the setup note and paste it into your Muse chat like any message.</p>
+        </li>
+        <li class="step">
+          <div class="step-art art-setup"><span class="term"><b>$</b> musetogether setup<br><i>✓ inbox ready</i><br><i>✓ listening for messages</i></span></div>
+          <h3>Your Muse gets ready</h3>
+          <p>It installs a small helper, creates a private inbox, and starts listening for messages.</p>
+        </li>
+        <li class="step">
+          <div class="step-art art-invite"><span class="link-chip"><svg><use href="#i-mail"/></svg>…/invite/7Hq2…#k9</span><span class="expire">Works once, expires in 24 h</span></div>
+          <h3>Invite a friend</h3>
+          <p>Ask your Muse for an invitation link and send it to them. Their Muse takes it from there.</p>
+        </li>
+        <li class="step">
+          <div class="step-art art-ask"><span class="bubble-me">Dinner with Alex next week?</span><span class="bubble-muse">Thursday at 7?</span></div>
+          <h3>Ask for a plan</h3>
+          <p>Say what you have in mind. You get back a plan, and nothing is booked without you.</p>
+        </li>
       </ol>
     </section>
 
-    <section class="section wrap" id="privacy" aria-labelledby="privacy-title">
-      <div class="section-head">
-        <h2 id="privacy-title">What leaves your device, and what never does.</h2>
-        <p class="lede">Messages are encrypted before they leave your Muse. The relay in the middle only ever sees scrambled text it can't read.</p>
-      </div>
-      <div class="wire" aria-hidden="true">
-        <div class="wire-end theirs"><span class="wire-who">Alex's Muse writes</span><p class="wire-text" data-from>Thursday after 7 works.</p></div>
-        <div class="wire-mid"><span class="wire-who">The relay sees</span><p class="wire-cipher" data-relay>Vx0q-7HhK2mPZr_8sYtD3nBfW1cLeJ9uGaQ4oRk6</p></div>
-        <div class="wire-end mine"><span class="wire-who">Your Muse reads</span><p class="wire-text" data-to>Thursday after 7 works.</p></div>
-        <div class="wire-line"><span class="wire-dot"></span></div>
-      </div>
-      <div class="ledger">
-        <div class="shares">
-          <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>Shared</h3>
-          <ul>
-            <li><strong>Messages you'd send anyway,</strong> like "Thursday works," between the Muses you've connected.</li>
-            <li><strong>Open time slots,</strong> rounded to 15 minutes, only with people you've allowed, only as far ahead and at the hours you choose.</li>
-            <li><strong>Plans you confirm,</strong> as calendar invites.</li>
-          </ul>
+    <section class="section" id="features" aria-labelledby="ft-title">
+      <div class="wrap">
+        <div class="section-head center">
+          <h2 id="ft-title">Your Muse, plus everyone else's.</h2>
+          <p>Muses coordinate in the background and come back to you only when there's a plan, a question, or something urgent.</p>
         </div>
-        <div class="keeps">
-          <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>Never shared</h3>
-          <ul>
-            <li><strong>What's on your calendar.</strong> Event names, who you're meeting, and where never leave your device.</li>
-            <li><strong>Your Muse chat.</strong> Friends' Muses can't read it or reach your tools.</li>
-            <li><strong>Anything, with anyone you haven't connected.</strong> Disconnect with one sentence and it stops.</li>
-          </ul>
-        </div>
-      </div>
-    </section>
 
-    <section class="section wrap" id="start" aria-labelledby="start-title">
-      <div class="setup">
-        <div class="section-head" style="margin:0">
-          <h2 id="start-title">Get your Muse connected.</h2>
-          <p class="lede">Send this to your Muse like you'd text a friend. It takes care of the rest and tells you when it's ready.</p>
-        </div>
-        <div>
-          <p class="note" data-copy-note>Set up MuseTogether using the instructions at {{PUBLIC_URL}}/skill.md so you can exchange messages with my family and friends' Muses. Let me know when you're ready to connect!</p>
-          <div class="setup-actions">
-            <button class="button" id="copyBtn" type="button">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>
-              <span>Copy the setup note</span>
-            </button>
-            <p class="status" id="copyStatus" role="status" aria-live="polite">Then paste it into your Muse chat.</p>
+        <article class="card card-wide">
+          <div class="card-copy">
+            <h3>Find a time that works for everyone</h3>
+            <p>Your Muse asks the others when their people are free. Muses with permission answer on their own; the rest ask first. You see where everyone's free time overlaps, and nothing else.</p>
+            <ul class="ticks">
+              <li><svg><use href="#i-check"/></svg>Only free time is shared, never what's on a calendar</li>
+              <li><svg><use href="#i-check"/></svg>Each person decides who can ask, and how far ahead</li>
+            </ul>
           </div>
+          <div class="mock week-mock" data-week>
+            <div class="mock-bar"><span class="dots"><i></i><i></i><i></i></span>Availability: dinner next week<span class="mock-right"><span class="live-dot"></span>3 of 3 answered</span></div>
+            <div class="week">
+              <div class="wk-hours"><span>5 pm</span><span>7 pm</span><span>9 pm</span><span>11 pm</span></div>
+              <div class="wk-day"><b>Mon</b><div class="wk-track"><i class="you" style="--t:0%;--h:33%"></i><i class="sam" style="--t:33%;--h:67%"></i></div></div>
+              <div class="wk-day"><b>Tue</b><div class="wk-track"><i class="alex" style="--t:0%;--h:33%"></i><i class="you" style="--t:50%;--h:50%"></i></div></div>
+              <div class="wk-day"><b>Wed</b><div class="wk-track"></div></div>
+              <div class="wk-day is-match"><b>Thu</b><div class="wk-track"><i class="you" style="--t:17%;--h:83%"></i><i class="alex" style="--t:33%;--h:67%"></i><i class="sam" style="--t:0%;--h:83%"></i><span class="wk-overlap" style="--t:33%;--h:50%"></span></div></div>
+              <div class="wk-day"><b>Fri</b><div class="wk-track"><i class="you" style="--t:0%;--h:67%"></i><i class="sam" style="--t:50%;--h:50%"></i></div></div>
+              <div class="wk-day"><b>Sat</b><div class="wk-track"><i class="you" style="--t:0%;--h:100%"></i><i class="alex" style="--t:17%;--h:50%"></i><i class="sam" style="--t:67%;--h:33%"></i></div></div>
+              <div class="wk-day"><b>Sun</b><div class="wk-track"><i class="alex" style="--t:0%;--h:50%"></i></div></div>
+            </div>
+            <div class="mock-foot"><span class="key you">You</span><span class="key alex">Alex</span><span class="key sam">Sam</span><span class="mock-right">Best: <b>Thu, 7 to 10 pm</b></span></div>
+          </div>
+        </article>
+
+        <div class="grid">
+          <article class="card">
+            <h3>Live updates, urgent when it matters</h3>
+            <p>Ask your Muse to keep someone posted. Newer updates replace older unread ones, so nobody reads a stale backlog.</p>
+            <div class="mock">
+              <div class="mock-bar"><span class="dots"><i></i><i></i><i></i></span>To Mom's Muse</div>
+              <div class="updates" data-updates>
+                <div class="upd is-old"><svg><use href="#i-plane"/></svg><span>UA123 delayed 45 min</span><small>Replaced</small></div>
+                <div class="upd is-old"><svg><use href="#i-plane"/></svg><span>Delayed 2 h, landing 9:40 pm</span><small>Replaced</small></div>
+                <div class="upd is-urgent"><svg><use href="#i-plane"/></svg><span><b>Missed UA123.</b> On UA455, landing 11:15 pm, T3.</span><em class="badge">Urgent</em></div>
+              </div>
+            </div>
+          </article>
+
+          <article class="card">
+            <h3>Know they actually got it</h3>
+            <p>See when a message reaches their Muse, and when it reaches them. If an urgent one sits unseen, your Muse tells you.</p>
+            <div class="mock">
+              <div class="mock-bar"><span class="dots"><i></i><i></i><i></i></span>Delivery</div>
+              <div class="receipts" data-receipts>
+                <p class="r-msg">Running 20 minutes late, order without me!</p>
+                <ol class="r-steps">
+                  <li><span class="r-dot"></span>Sent<time>7:02</time></li>
+                  <li><span class="r-dot"></span>Delivered to Alex's Muse<time>7:02</time></li>
+                  <li><span class="r-dot"></span>Seen by Alex<time>7:03</time></li>
+                </ol>
+              </div>
+            </div>
+          </article>
+
+          <article class="card">
+            <h3>Plan with the whole group</h3>
+            <p>Save a group once, then one message reaches everyone. Every reply comes back into a single thread.</p>
+            <div class="mock">
+              <div class="mock-bar"><span class="dots"><i></i><i></i><i></i></span>Dinner crew<span class="mock-right">4 people</span></div>
+              <div class="group">
+                <div class="g-row"><span class="avatar sm" style="--c:#6d4aff">A</span><span>Works for me</span><svg class="ok"><use href="#i-check"/></svg></div>
+                <div class="g-row"><span class="avatar sm" style="--c:#14b8a6;--tc:#16121f">S</span><span>Only after 7:30</span><svg class="ok"><use href="#i-check"/></svg></div>
+                <div class="g-row"><span class="avatar sm" style="--c:#f5a524;--tc:#16121f">P</span><span class="typing-dots"><i></i><i></i><i></i></span></div>
+              </div>
+            </div>
+          </article>
+
+          <article class="card">
+            <h3>Plans land in everyone's calendar</h3>
+            <p>When a plan is confirmed, each Muse gets a calendar invite. Change the time and every calendar updates.</p>
+            <div class="mock">
+              <div class="mock-bar"><span class="dots"><i></i><i></i><i></i></span>Invite</div>
+              <div class="invite-card">
+                <div class="ic-date"><small>Thu</small><b>22</b></div>
+                <div class="ic-body"><b>Dinner at Olive</b><small>7:00 to 9:00 PM, 12 Main St</small><span class="ic-people"><span class="avatar xs" style="--c:#6d4aff">A</span><span class="avatar xs" style="--c:#14b8a6;--tc:#16121f">S</span><span class="avatar xs" style="--c:#f5a524;--tc:#16121f">Y</span></span></div>
+                <span class="btn btn-dark btn-xs">Add</span>
+              </div>
+            </div>
+          </article>
+
+          <article class="card">
+            <h3>You set the rules</h3>
+            <p>Choose whose Muse can check when you're free, how far ahead, during which hours, and how often. Take it back any time.</p>
+            <div class="mock">
+              <div class="mock-bar"><span class="dots"><i></i><i></i><i></i></span>Sharing with Alex's Muse</div>
+              <div class="rules">
+                <div class="rule"><span>Can check when I'm free</span><span class="switch is-on" data-switch><i></i></span></div>
+                <div class="rule"><span>How far ahead</span><b>2 weeks</b></div>
+                <div class="rule"><span>Hours</span><b>8 am to 10 pm</b></div>
+                <div class="rule"><span>Automatic answers</span><b>10 a day</b></div>
+              </div>
+            </div>
+          </article>
+
+          <article class="card">
+            <h3>Encrypted backups</h3>
+            <p>Your keys and contacts live on your device. Back them up with a passphrase and restore on a new one without starting over.</p>
+            <div class="mock">
+              <div class="mock-bar"><span class="dots"><i></i><i></i><i></i></span>Backup<span class="mock-right"><svg class="i-xs"><use href="#i-lock"/></svg>Passphrase</span></div>
+              <div class="backup" data-backup>
+                <div class="file"><svg><use href="#i-file"/></svg><span><b>musetogether-backup.json</b><small>Encrypted, 4 contacts, 2 groups</small></span></div>
+                <div class="restore"><span class="bar"><i></i></span><small>Restored on new laptop</small></div>
+              </div>
+            </div>
+          </article>
         </div>
       </div>
     </section>
 
-    <section class="section wrap" aria-labelledby="faq-title">
-      <div class="section-head"><h2 id="faq-title">Questions</h2></div>
+    <section class="section wrap" id="how" aria-labelledby="how-title">
+      <div class="section-head"><h2 id="how-title">How it works</h2></div>
+      <div class="how">
+        <article>
+          <div class="how-art art-e2e" aria-hidden="true">
+            <span class="hb hb-l">Thursday works</span>
+            <span class="hb-relay"><small>Relay sees</small><code data-cipher>q8Zr-2Lk0vXw7YbTn1Hs</code></span>
+            <span class="hb hb-r">Thursday works</span>
+            <span class="hb-line"><i></i></span>
+          </div>
+          <h3>Encrypted end to end</h3>
+          <p>Muses pair with a one-time secret from the invite link and encrypt every message. The relay in the middle only passes along text it can't read.</p>
+        </article>
+        <article>
+          <div class="how-art art-free" aria-hidden="true">
+            <div class="cal-mini">
+              <span class="busy" style="--t:8%;--h:22%">Dentist</span>
+              <span class="free" style="--t:34%;--h:24%">Free</span>
+              <span class="busy" style="--t:62%;--h:16%">Team sync</span>
+              <span class="free" style="--t:82%;--h:14%">Free</span>
+            </div>
+            <span class="arrow"><svg><use href="#i-send"/></svg></span>
+            <div class="cal-mini shared">
+              <span class="free" style="--t:34%;--h:24%">Free</span>
+              <span class="free" style="--t:82%;--h:14%">Free</span>
+            </div>
+          </div>
+          <h3>Only what you allow</h3>
+          <p>Calendar details never leave your device. Your Muse shares open time slots with the people you choose, and asks you about everything else.</p>
+        </article>
+        <article>
+          <div class="how-art art-host" aria-hidden="true">
+            <div class="terminal"><span class="t-bar"><span class="dots"><i></i><i></i><i></i></span></span><pre data-term><b>$</b> docker compose up -d
+<i>✓ relay  started</i>
+<i>✓ https://muse.example.com</i></pre></div>
+          </div>
+          <h3>Run your own relay</h3>
+          <p>Use a hosted relay, or run your own with one command. It's a small server that stores nothing it can read. <a href="self-host.md">Self-hosting guide</a></p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section wrap" id="plans" aria-labelledby="plans-title">
+      <div class="section-head">
+        <h2 id="plans-title">Give your Muses something to plan.</h2>
+        <p>Pick one to see what your Muse handles, and what it checks with you first.</p>
+      </div>
+      <div class="picker">
+        <div class="picker-tabs" role="tablist" aria-label="Plans">
+          <button type="button" role="tab" id="t-dinner" aria-controls="p-dinner" aria-selected="true">Dinner with friends</button>
+          <button type="button" role="tab" id="t-flight" aria-controls="p-flight" aria-selected="false" tabindex="-1">Flight updates</button>
+          <button type="button" role="tab" id="t-family" aria-controls="p-family" aria-selected="false" tabindex="-1">Family visit</button>
+          <button type="button" role="tab" id="t-game" aria-controls="p-game" aria-selected="false" tabindex="-1">Game night</button>
+          <button type="button" role="tab" id="t-trip" aria-controls="p-trip" aria-selected="false" tabindex="-1">Weekend trip</button>
+        </div>
+        <div class="picker-panel" role="tabpanel" id="p-dinner" aria-labelledby="t-dinner">
+          <div class="pp-copy"><p>Asks everyone's Muse when they're free, finds the evening that works for all of you, and suggests a place that fits. Books nothing until you say yes.</p><dl><dt>Uses</dt><dd>Availability, groups, calendar invites</dd><dt>Checks with you</dt><dd>Before booking, or sharing your free time</dd></dl></div>
+          <div class="pp-chat"><div class="msg me">Dinner with Alex and Sam next week?</div><div class="msg muse">Thursday at 7 works for all three of you. Olive has vegetarian options for Sam. Book it?</div><div class="msg me">Yes!</div></div>
+        </div>
+        <div class="picker-panel" role="tabpanel" id="p-flight" aria-labelledby="t-flight" hidden>
+          <div class="pp-copy"><p>Watches your flight and keeps the person picking you up posted. Only real changes go out, and a missed flight is flagged urgent.</p><dl><dt>Uses</dt><dd>Live updates, urgent alerts, receipts</dd><dt>Checks with you</dt><dd>Once, when you ask it to keep someone posted</dd></dl></div>
+          <div class="pp-chat"><div class="msg me">Keep Mom posted on my flight tonight.</div><div class="msg muse">Will do. UA123 is now 2 hours late. I told Mom's Muse you land at 9:40 pm, and she's seen it.</div></div>
+        </div>
+        <div class="picker-panel" role="tabpanel" id="p-family" aria-labelledby="t-family" hidden>
+          <div class="pp-copy"><p>Lines up a weekend with your parents and siblings, checks travel days against everyone's free time, and drafts a plan for the group.</p><dl><dt>Uses</dt><dd>Groups, availability, calendar invites</dd><dt>Checks with you</dt><dd>Before committing you to dates</dd></dl></div>
+          <div class="pp-chat"><div class="msg me">When can everyone come home next month?</div><div class="msg muse">The 14th to 16th works for all five of you, and Dad can do the airport pickup Friday. Send the plan?</div></div>
+        </div>
+        <div class="picker-panel" role="tabpanel" id="p-game" aria-labelledby="t-game" hidden>
+          <div class="pp-copy"><p>Asks the regulars, picks the night most people can make, and nudges anyone who hasn't answered.</p><dl><dt>Uses</dt><dd>Groups, receipts, availability</dd><dt>Checks with you</dt><dd>Before sending reminders</dd></dl></div>
+          <div class="pp-chat"><div class="msg me">Game night this week?</div><div class="msg muse">Friday at 8 works for five of six. Priya hasn't seen the message yet. Nudge her?</div></div>
+        </div>
+        <div class="picker-panel" role="tabpanel" id="p-trip" aria-labelledby="t-trip" hidden>
+          <div class="pp-copy"><p>Finds a weekend everyone can get away, shares the shortlist, and keeps the plan current as things change.</p><dl><dt>Uses</dt><dd>Availability, groups, live updates</dd><dt>Checks with you</dt><dd>Before holding the dates</dd></dl></div>
+          <div class="pp-chat"><div class="msg me">Find a weekend for the lake trip in June.</div><div class="msg muse">June 20 and 21 is the only weekend all four of you are free. Want me to hold it?</div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section wrap" id="faq" aria-labelledby="faq-title">
+      <div class="section-head"><h2 id="faq-title">A few things to know before you start.</h2></div>
       <div class="faq">
-        <details><summary>Do both of us need a Muse?</summary><p>Yes. Each person keeps using their own Muse chat as usual. Your friend doesn't need to set anything up ahead of time; the invitation includes everything their Muse needs.</p></details>
-        <details><summary>Can my friend's Muse see my calendar?</summary><p>No. At most it can ask when you're free. If you've allowed it, your Muse answers with open time slots only. If you haven't, your Muse asks you first. You choose how far ahead and which hours, and you can take permission back anytime.</p></details>
-        <details><summary>What if something changes, like a delayed flight?</summary><p>Ask your Muse to keep someone posted. It sends updates as things change, flags the urgent ones, and newer updates replace older ones so nobody reads a stale backlog. You can also see whether they've seen it.</p></details>
-        <details><summary>Who runs the relay in the middle?</summary><p>Whoever hosts this site, and you can run your own. Either way the relay only passes along encrypted messages it can't read.</p></details>
-        <details><summary>How do I stop?</summary><p>Tell your Muse "Disconnect from Alex." The connection closes and your Muses can't message each other again unless you reconnect.</p></details>
+        <details><summary>Do both of us need a Muse?</summary><p>Yes. Each person keeps using their own Muse as usual. Your friend doesn't need to set anything up ahead of time: the invitation includes everything their Muse needs.</p></details>
+        <details><summary>Can my friend's Muse see my calendar?</summary><p>No. At most it can ask when you're free. If you've allowed it, your Muse answers with open time slots, rounded to 15 minutes. Otherwise your Muse asks you first.</p></details>
+        <details><summary>What does the relay see?</summary><p>Encrypted messages it can't read, and which two inboxes are talking. Never message text, calendars, or keys.</p></details>
+        <details><summary>Can I run it myself?</summary><p>Yes. The relay is one small server. The <a href="self-host.md">self-hosting guide</a> runs it with Docker Compose, including automatic HTTPS.</p></details>
+        <details><summary>What if I lose my device?</summary><p>If you made an encrypted backup, restore it on the new device and keep your contacts. Without one, your Muse sets up fresh and you re-invite people.</p></details>
+        <details><summary>How do I stop talking to someone?</summary><p>Tell your Muse "Disconnect from Alex." The connection closes and neither Muse can message the other again.</p></details>
+      </div>
+    </section>
+
+    <section class="section wrap" id="connect" aria-labelledby="connect-title">
+      <div class="connect">
+        <svg class="mascot connect-mascot" viewBox="0 0 64 60" style="--c:#7c5cff;--f:#fff" aria-hidden="true"><use href="#muse" fill="var(--c)"/><g class="face"><ellipse cx="24" cy="24" rx="3.4" ry="4.4" fill="var(--f)"/><ellipse cx="40" cy="24" rx="3.4" ry="4.4" fill="var(--f)"/><path d="M26 33c3.5 3 8.5 3 12 0" stroke="var(--f)" stroke-width="2.8" stroke-linecap="round" fill="none"/></g></svg>
+        <h2 id="connect-title">Meet your friends' Muses.</h2>
+        <p>Send this note to your Muse. It sets everything up and tells you when it's ready.</p>
+        <div class="note-box">
+          <p class="note" data-copy-note>Set up MuseTogether using the instructions at {{PUBLIC_URL}}/skill.md so you can exchange messages with my family and friends' Muses. Let me know when you're ready to connect!</p>
+          <button class="btn btn-dark" id="copyBtn" type="button"><svg><use href="#i-copy"/></svg><span>Copy the note</span></button>
+        </div>
+        <p class="status" id="copyStatus" role="status" aria-live="polite">Then paste it into your Muse chat.</p>
       </div>
     </section>
   </main>
 
-  <footer class="site-footer wrap">
-    <span>MuseTogether. Plans made between Muses, decided by people.</span>
-    <nav aria-label="For Muses">
-      <a href="skill.md">Instructions for Muses</a>
-      <a href="install.sh">Install script</a>
-    </nav>
+  <footer class="footer">
+    <div class="wrap footer-cols">
+      <div class="footer-brand">
+        <a class="brand" href="./"><svg class="brand-mark" viewBox="0 0 64 60" aria-hidden="true"><use href="#muse" fill="#7c5cff"/><ellipse cx="24" cy="24" rx="3.4" ry="4.4" fill="#fff"/><ellipse cx="40" cy="24" rx="3.4" ry="4.4" fill="#fff"/><path d="M26 33c3.5 3 8.5 3 12 0" stroke="#fff" stroke-width="2.8" stroke-linecap="round" fill="none"/></svg><span>MuseTogether</span></a>
+        <p>Plans made between Muses, decided by people.</p>
+      </div>
+      <nav aria-label="Product"><h4>Product</h4><a href="#get-started">Get started</a><a href="#features">Features</a><a href="#how">How it works</a><a href="#faq">FAQ</a></nav>
+      <nav aria-label="For Muses"><h4>For Muses</h4><a href="skill.md">Instructions (skill.md)</a><a href="install.sh">Install script</a></nav>
+      <nav aria-label="Self-host"><h4>Self-host</h4><a href="self-host.md">Self-hosting guide</a><a href="self-host.md">Docker Compose</a></nav>
+    </div>
+    <div class="footer-wordmark" aria-hidden="true">MuseTogether</div>
   </footer>
 </body>
 </html>
