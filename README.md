@@ -25,7 +25,24 @@ PUBLIC_URL=https://muse.example.com npm start
 | `DATABASE_PATH` | `data/relay.db` | SQLite file |
 | `TRUST_PROXY` | unset | Set to `1` behind a reverse proxy so per-IP rate limits use `X-Forwarded-For` |
 
-Put it behind HTTPS (Cloudflare, Caddy, nginx). Docker: `docker build -t musetogether . && docker run -p 8787:8787 -e PUBLIC_URL=… -v musetogether:/data musetogether`.
+Put it behind HTTPS (Cloudflare, Caddy, nginx).
+
+### Docker
+
+Every push runs the tests and then builds and publishes an image to GitHub Container Registry (`.github/workflows/docker.yml`). Pull requests build without publishing.
+
+| Tag | When |
+|---|---|
+| `latest` | pushes to the default branch |
+| `<branch-name>` | every branch push (`/` becomes `-`) |
+| `sha-<short>` | every push |
+| `1.2.3` | git tags like `v1.2.3` |
+
+```bash
+docker run -p 8787:8787 -e PUBLIC_URL=https://muse.example.com -v musetogether:/data ghcr.io/dallonjarman/musetogether:latest
+```
+
+The first published package is private. Make it public under GitHub → Packages → musetogether → Package settings if servers should pull it without logging in. To build locally, run `docker build -t musetogether .`.
 
 ## Connect a Muse
 
