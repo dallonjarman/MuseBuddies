@@ -5,7 +5,7 @@ set -e
 DATA_DIR="$(dirname "${DATABASE_PATH:-/data/relay.db}")"
 if [ "$(id -u)" = "0" ]; then
   mkdir -p "$DATA_DIR"
-  chown -R node:node "$DATA_DIR" /app/public
+  chown -R node:node "$DATA_DIR"
   exec setpriv --reuid=node --regid=node --init-groups "$@"
 fi
 exec "$@"

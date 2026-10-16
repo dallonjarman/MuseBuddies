@@ -199,9 +199,21 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   setInterval(() => relay.prune(), 60 * 60 * 1000).unref();
   const server = createServer({ relay, publicUrl, trustProxy: process.env.TRUST_PROXY === "1" });
   server.listen(port, host, () => console.log(`MuseTogether relay listening on ${host}:${port} (public URL ${publicUrl})`));
-  const shutdown = (): void => {
-    server.close(() => relay.close());
+  let stopping = false;
+  const shutdown = (signal: string): void => {
+    if (stopping) return;
+    stopping = true;
+    console.log(`${signal} received, shutting down`);
+    // Stop accepting connections, drop idle keep-alives now, and end in-flight long-polls
+    // shortly after (clients just poll again), well inside Docker's 10s stop timeout.
+    server.close(() => {
+      relay.close();
+      process.exit(0);
+    });
+    server.closeIdleConnections();
+    setTimeout(() => server.closeAllConnections(), 1500).unref();
+    setTimeout(() => process.exit(0), 5000).unref();
   };
-  process.on("SIGINT", shutdown);
-  process.on("SIGTERM", shutdown);
+  process.on("SIGINT", () => shutdown("SIGINT"));
+  process.on("SIGTERM", () => shutdown("SIGTERM"));
 }

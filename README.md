@@ -46,14 +46,20 @@ Put it behind HTTPS (Cloudflare, Caddy, nginx).
 
 ### Docker
 
-Every push runs the tests and then builds and publishes an image to GitHub Container Registry (`.github/workflows/docker.yml`). Pull requests build without publishing.
+`.github/workflows/docker.yml` tests, builds and publishes the image to GitHub Container Registry:
+
+- **Pull requests:** run the tests, build for `linux/amd64` and `linux/arm64`, and smoke-test the image (health, pages, client package, inbox API, non-root user, clean shutdown). Nothing is published.
+- **`main` and `v*` tags:** the same checks, then publish. A broken image never reaches `latest`.
+- **Every Monday:** rebuild `main` on a fresh base image to pick up security fixes.
+- **Skipped:** changes that can't affect the image (README, `docs/`, the Pages workflow).
+
+Images carry build provenance and an SBOM. Dependabot proposes updates to the pinned Node base image, the GitHub Actions and the dev tooling.
 
 | Tag | When |
 |---|---|
-| `latest` | pushes to the default branch |
-| `<branch-name>` | every branch push (`/` becomes `-`) |
-| `sha-<short>` | every push |
-| `1.2.3` | git tags like `v1.2.3` |
+| `latest` | pushes to `main`, and the weekly rebuild |
+| `sha-<short>` | every published build |
+| `1.2.3`, `1.2` | git tags like `v1.2.3` |
 
 ```bash
 docker run -p 8787:8787 -e PUBLIC_URL=https://muse.example.com -v musetogether:/data ghcr.io/dallonjarman/musetogether:latest
