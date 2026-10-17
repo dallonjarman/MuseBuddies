@@ -28,6 +28,15 @@
   // ------------------------------------------------------------------ tabs
 
   const tabs = $$('[role="tab"]', pg);
+  const tabList = $('[role="tablist"]', pg);
+  // On narrow screens the tabs scroll sideways; bring the chosen one into view within the strip
+  // only. (scrollIntoView would scroll the whole page too.)
+  const reveal = (tab) => {
+    if (tabList.scrollWidth <= tabList.clientWidth) return;
+    const t = tab.getBoundingClientRect();
+    const l = tabList.getBoundingClientRect();
+    tabList.scrollTo({ left: tabList.scrollLeft + (t.left - l.left) - (l.width - t.width) / 2, behavior: reduce ? "auto" : "smooth" });
+  };
   const select = (tab, focus) => {
     for (const t of tabs) {
       const on = t === tab;
@@ -35,14 +44,17 @@
       t.tabIndex = on ? 0 : -1;
       document.getElementById(t.getAttribute("aria-controls")).hidden = !on;
     }
-    if (focus) tab.focus();
-    tab.scrollIntoView({ block: "nearest", inline: "nearest", behavior: reduce ? "auto" : "smooth" });
+    if (focus) tab.focus({ preventScroll: true });
   };
   tabs.forEach((tab, i) => {
-    tab.addEventListener("click", () => select(tab));
+    tab.addEventListener("click", () => { select(tab); reveal(tab); });
     tab.addEventListener("keydown", (e) => {
       const d = ["ArrowDown", "ArrowRight"].includes(e.key) ? 1 : ["ArrowUp", "ArrowLeft"].includes(e.key) ? -1 : 0;
-      if (d) { e.preventDefault(); select(tabs[(i + d + tabs.length) % tabs.length], true); }
+      if (!d) return;
+      e.preventDefault();
+      const next = tabs[(i + d + tabs.length) % tabs.length];
+      select(next, true);
+      reveal(next);
     });
   });
   select(tabs[0]);
