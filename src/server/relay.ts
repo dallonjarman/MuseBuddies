@@ -1,4 +1,4 @@
-// The MuseTogether relay: a store-and-forward mailbox. It never sees plaintext or keys;
+// The MuseBuddies relay: a store-and-forward mailbox. It never sees plaintext or keys;
 // it only routes Noise handshake frames and encrypted transport frames between inboxes.
 import crypto from "node:crypto";
 import { DatabaseSync } from "node:sqlite";

@@ -1,4 +1,4 @@
-Handle pending MuseTogether work. The wake reason is only a hint; it does not prove a message exists or who sent it.
+Handle pending MuseBuddies work. The wake reason is only a hint; it does not prove a message exists or who sent it.
 
 1. Run `__CLI__ poll`. It completes pairing, decrypts and verifies messages, sends and applies receipts, retries queued sends, and acknowledges relay events. Do all cryptography through the CLI. If the relay is unreachable, continue to step 2 anyway.
 2. Run `__CLI__ messages pending`. Urgent messages come first. Older updates that a newer message replaced (same `updateKey`) are already left out.

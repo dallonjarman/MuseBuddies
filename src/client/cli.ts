@@ -1,13 +1,13 @@
 #!/usr/bin/env node
-// musetogether: the CLI a Muse runs to pair with, and message, other Muses through a relay.
+// musebuddies: the CLI a Muse runs to pair with, and message, other Muses through a relay.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { PlanEvent, Priority, TimeSlot } from "../shared/protocol.ts";
-import { MuseTogether, hookCheck, type SendOptions } from "./app.ts";
-import { Store, storeDir } from "./store.ts";
+import { MuseBuddies, hookCheck, type SendOptions } from "./app.ts";
+import { Store, setting, storeDir } from "./store.ts";
 
-export { MuseTogether, hookCheck } from "./app.ts";
+export { MuseBuddies, hookCheck } from "./app.ts";
 
 const USAGE = [
   "setup [--relay <url>]",
@@ -41,7 +41,7 @@ const USAGE = [
   "availability decline --request <id>",
   "availability results --request <id> [--my-busy <json|@file> | --my-free <json|@file>]",
   "availability list",
-  "backup export --file <path>                           (passphrase from MUSETOGETHER_BACKUP_PASSPHRASE or stdin)",
+  "backup export --file <path>                           (passphrase from MUSEBUDDIES_BACKUP_PASSPHRASE or stdin)",
   "backup import --file <path> [--force]"
 ];
 
@@ -54,7 +54,7 @@ async function readStdin(): Promise<string> {
 
 const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
 
-async function watch(app: MuseTogether, wait: number): Promise<void> {
+async function watch(app: MuseBuddies, wait: number): Promise<void> {
   let stopping = false;
   const stop = (): void => {
     stopping = true;
@@ -106,29 +106,29 @@ export async function main(argv: string[]): Promise<void> {
   };
 
   if (!command || command === "--help" || command === "help") {
-    print({ name: "musetogether", version: "0.2.0", commands: USAGE });
+    print({ name: "musebuddies", version: "0.2.0", commands: USAGE });
     return;
   }
   if (command === "hook" && sub === "check") {
     try {
       print(hookCheck());
     } catch {
-      fail(new Error("unable to read MuseTogether state. Run setup first."));
+      fail(new Error("unable to read MuseBuddies state. Run setup first."));
     }
     return;
   }
   if (command === "backup" && sub === "import") {
     // Runs before any store is opened, since it replaces the database file.
     try {
-      const pass = process.env.MUSETOGETHER_BACKUP_PASSPHRASE ?? (await readStdin());
-      print(MuseTogether.backupImport(storeDir(), required("--file"), pass, argv.includes("--force")));
+      const pass = setting("BACKUP_PASSPHRASE") ?? (await readStdin());
+      print(MuseBuddies.backupImport(storeDir(), required("--file"), pass, argv.includes("--force")));
     } catch (err) {
       fail(err);
     }
     return;
   }
 
-  const app = new MuseTogether(new Store());
+  const app = new MuseBuddies(new Store());
   try {
     const grouped = ["hook", "invite", "messages", "contacts", "group", "backup", "share", "availability"].includes(command);
     const slots = (name: string): TimeSlot[] | undefined => {
@@ -212,7 +212,7 @@ export async function main(argv: string[]): Promise<void> {
         print(app.pending());
         break;
       case "messages handled":
-        if (!argv[2]) throw new Error("Usage: musetogether messages handled <id>");
+        if (!argv[2]) throw new Error("Usage: musebuddies messages handled <id>");
         print(await app.messageHandled(argv[2]));
         break;
       case "messages outbound":
@@ -222,7 +222,7 @@ export async function main(argv: string[]): Promise<void> {
         print(app.thread(required("--conversation"), number("--limit", 100)));
         break;
       case "messages ics":
-        if (!argv[2]) throw new Error("Usage: musetogether messages ics <id>");
+        if (!argv[2]) throw new Error("Usage: musebuddies messages ics <id>");
         process.stdout.write(app.ics(argv[2]));
         break;
       case "contacts list":
@@ -238,7 +238,7 @@ export async function main(argv: string[]): Promise<void> {
         print(app.groupDelete(required("--name")));
         break;
       case "backup export": {
-        const pass = process.env.MUSETOGETHER_BACKUP_PASSPHRASE ?? (await readStdin());
+        const pass = setting("BACKUP_PASSPHRASE") ?? (await readStdin());
         print(app.backupExport(required("--file"), pass));
         break;
       }
@@ -297,7 +297,7 @@ export async function main(argv: string[]): Promise<void> {
         print(await app.disconnect(required("--contact")));
         break;
       default:
-        throw new Error(`Unknown command. Usage:\n  musetogether ${USAGE.join("\n  musetogether ")}`);
+        throw new Error(`Unknown command. Usage:\n  musebuddies ${USAGE.join("\n  musebuddies ")}`);
     }
   } catch (err) {
     fail(err);

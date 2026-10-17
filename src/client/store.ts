@@ -5,8 +5,20 @@ import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import type { AvailabilityRequest, AvailabilityResponse, GroupInfo, PlanEvent, Priority, SharingGrants, TimeSlot } from "../shared/protocol.ts";
 
+// Settings read MUSEBUDDIES_<name>, falling back to MUSETOGETHER_<name> from before the rename.
+export function setting(name: string): string | undefined {
+  return process.env[`MUSEBUDDIES_${name}`] ?? process.env[`MUSETOGETHER_${name}`];
+}
+
+// ~/.musebuddies, or ~/.musetogether when a store from before the rename lives there. It checks for
+// the database itself, since reinstalling creates ~/.musebuddies for the CLI's files.
 export function storeDir(): string {
-  return process.env.MUSETOGETHER_DIR ?? path.join(os.homedir(), ".musetogether");
+  const configured = setting("DIR");
+  if (configured) return configured;
+  const current = path.join(os.homedir(), ".musebuddies");
+  const legacy = path.join(os.homedir(), ".musetogether");
+  const has = (dir: string): boolean => fs.existsSync(path.join(dir, "state.db"));
+  return !has(current) && has(legacy) ? legacy : current;
 }
 
 export interface Identity {

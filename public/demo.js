@@ -74,7 +74,7 @@
         </g>
         <ellipse cx="160" cy="70" rx="40" ry="16" fill="#fff" opacity=".7"/>
       </svg>
-      <span class="dm-cloud-label">${icon("i-lock")}MuseTogether relay</span>
+      <span class="dm-cloud-label">${icon("i-lock")}MuseBuddies relay</span>
       <span class="dm-cloud-chip">end-to-end encrypted</span>
       <span class="dm-agree">${icon("i-check")}Everyone agreed</span>
     </div>`);

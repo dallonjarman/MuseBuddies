@@ -1,5 +1,5 @@
 // The feature playground ("Try it yourself") and the copy button in "Under the hood". Each widget
-// is a small working model of a MuseTogether feature. Without JavaScript every panel shows as
+// is a small working model of a MuseBuddies feature. Without JavaScript every panel shows as
 // static content.
 (() => {
   const pg = document.querySelector("[data-playground]");
@@ -280,11 +280,11 @@
         const p = (n) => String(n).padStart(2, "0");
         return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}T${p(h)}${p(m)}00`;
       };
-      const uid = `${crypto.getRandomValues(new Uint32Array(2)).join("-")}@musetogether`;
+      const uid = `${crypto.getRandomValues(new Uint32Array(2)).join("-")}@musebuddies`;
       const ics = [
-        "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//MuseTogether//Website demo//EN", "CALSCALE:GREGORIAN", "METHOD:PUBLISH",
+        "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//MuseBuddies//Website demo//EN", "CALSCALE:GREGORIAN", "METHOD:PUBLISH",
         "BEGIN:VEVENT", `UID:${uid}`, `DTSTAMP:${stamp(new Date())}`, `DTSTART:${local(timeSel.value)}`, `DTEND:${local(end(timeSel.value))}`,
-        `SUMMARY:Dinner at ${placeSel.value}`, `LOCATION:${placeSel.value}`, "DESCRIPTION:Planned by your Muses with MuseTogether (demo invite).",
+        `SUMMARY:Dinner at ${placeSel.value}`, `LOCATION:${placeSel.value}`, "DESCRIPTION:Planned by your Muses with MuseBuddies (demo invite).",
         "STATUS:CONFIRMED", "END:VEVENT", "END:VCALENDAR", ""
       ].join("\r\n");
       const url = URL.createObjectURL(new Blob([ics], { type: "text/calendar" }));

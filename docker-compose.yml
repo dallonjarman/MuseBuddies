@@ -1,4 +1,4 @@
-# MuseTogether relay. Quick start:
+# MuseBuddies relay. Quick start:
 #   cp .env.example .env    # set PUBLIC_URL (and DOMAIN for HTTPS)
 #   docker compose --profile https up -d    # relay + Caddy with automatic HTTPS
 #   docker compose up -d                    # relay only, on 127.0.0.1:8787 (bring your own proxy)
@@ -8,7 +8,7 @@ services:
   relay:
     # Builds from this repo by default. To use the published image instead, set
     # RELAY_IMAGE=ghcr.io/dallonjarman/musetogether:latest and run `docker compose pull`.
-    image: ${RELAY_IMAGE:-musetogether-relay:local}
+    image: ${RELAY_IMAGE:-musebuddies-relay:local}
     build: .
     restart: unless-stopped
     environment:

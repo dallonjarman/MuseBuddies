@@ -9,6 +9,7 @@
 import crypto from "node:crypto";
 
 export const PROTOCOL_NAME = "Noise_XXpsk3_25519_ChaChaPoly_SHA256";
+// Part of the wire protocol: changing it would stop this client pairing with every existing Muse.
 export const PROLOGUE = Buffer.from("musetogether/v1", "utf8");
 const DH_LEN = 32;
 const TAG_LEN = 16;

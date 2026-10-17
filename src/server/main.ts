@@ -29,7 +29,7 @@ const DOWNLOADS = new Set(["docker-compose.yml"]);
 
 export interface ServerOptions {
   relay: Relay;
-  /** Public origin, e.g. https://musetogether.example. Substituted for {{PUBLIC_URL}} in text assets. */
+  /** Public origin, e.g. https://musebuddies.example. Substituted for {{PUBLIC_URL}} in text assets. */
   publicUrl: string;
   /** Max inbox registrations per IP per hour. */
   registrationsPerHour?: number;
@@ -218,7 +218,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   relay.prune();
   setInterval(() => relay.prune(), 60 * 60 * 1000).unref();
   const server = createServer({ relay, publicUrl, trustProxy: process.env.TRUST_PROXY === "1" });
-  server.listen(port, host, () => console.log(`MuseTogether relay listening on ${host}:${port} (public URL ${publicUrl})`));
+  server.listen(port, host, () => console.log(`MuseBuddies relay listening on ${host}:${port} (public URL ${publicUrl})`));
   let stopping = false;
   const shutdown = (signal: string): void => {
     if (stopping) return;

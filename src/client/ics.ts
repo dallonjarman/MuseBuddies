@@ -25,9 +25,10 @@ export function toIcs(event: PlanEvent, sentAt: string): string {
   const lines = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//MuseTogether//EN",
+    "PRODID:-//MuseBuddies//EN",
     "METHOD:PUBLISH",
     "BEGIN:VEVENT",
+    // The UID domain predates the rename; keeping it means updates still replace existing calendar entries.
     `UID:${escape(event.uid)}@musetogether`,
     `DTSTAMP:${stamp(sentAt)}`,
     // Later updates to the same uid carry a higher sequence, so calendars replace the entry.

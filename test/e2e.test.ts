@@ -7,16 +7,16 @@ import os from "node:os";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { after, before, test } from "node:test";
-import { MuseTogether, hookCheck } from "../src/client/cli.ts";
-import { Store } from "../src/client/store.ts";
+import { MuseBuddies, hookCheck } from "../src/client/cli.ts";
+import { Store, setting, storeDir } from "../src/client/store.ts";
 import { createServer } from "../src/server/main.ts";
 import { Relay } from "../src/server/relay.ts";
 
 let baseUrl = "";
 let server: ReturnType<typeof createServer>;
 const relay = new Relay(":memory:");
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "musetogether-test-"));
-const muse = (name: string): MuseTogether => new MuseTogether(new Store(path.join(tmp, name)));
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "musebuddies-test-"));
+const muse = (name: string): MuseBuddies => new MuseBuddies(new Store(path.join(tmp, name)));
 const PASS = "correct horse battery staple";
 
 before(async () => {
@@ -32,13 +32,13 @@ after(() => {
   fs.rmSync(tmp, { recursive: true, force: true });
 });
 
-async function ready(...names: string[]): Promise<MuseTogether[]> {
+async function ready(...names: string[]): Promise<MuseBuddies[]> {
   const muses = names.map(muse);
   for (const m of muses) await m.setup(baseUrl);
   return muses;
 }
 
-async function pair(a: MuseTogether, aliasForB: string, b: MuseTogether, aliasForA: string): Promise<void> {
+async function pair(a: MuseBuddies, aliasForB: string, b: MuseBuddies, aliasForA: string): Promise<void> {
   const { inviteUrl } = (await a.inviteCreate(aliasForB)) as { inviteUrl: string };
   await b.inviteAccept(aliasForA, inviteUrl);
   await a.poll(); // msg1 -> msg2
@@ -126,11 +126,11 @@ test("urgent updates are listed first and flagged for the hook", async () => {
   const pending = friend.store.pendingMessages();
   assert.deepEqual(pending.map((m) => m.priority), ["urgent", "normal"]);
 
-  process.env.MUSETOGETHER_DIR = path.join(tmp, "friend");
+  process.env.MUSEBUDDIES_DIR = path.join(tmp, "friend");
   try {
     assert.deepEqual(hookCheck(), { pendingMessagesCount: 2, urgentMessagesCount: 1, pendingOutboxCount: 0 });
   } finally {
-    delete process.env.MUSETOGETHER_DIR;
+    delete process.env.MUSEBUDDIES_DIR;
   }
 });
 
@@ -265,12 +265,12 @@ test("backups restore identity and contacts without reusing nonces", async () =>
   await them.poll();
 
   const restoredDir = path.join(tmp, "b-me-restored");
-  assert.throws(() => MuseTogether.backupImport(restoredDir, file, "wrong passphrase!!"), /Wrong passphrase/);
-  const result = MuseTogether.backupImport(restoredDir, file, PASS) as { contacts: { alias: string; status: string }[] };
+  assert.throws(() => MuseBuddies.backupImport(restoredDir, file, "wrong passphrase!!"), /Wrong passphrase/);
+  const result = MuseBuddies.backupImport(restoredDir, file, PASS) as { contacts: { alias: string; status: string }[] };
   assert.deepEqual(result.contacts, [{ alias: "Them", status: "active" }]);
   me.store.close();
 
-  const restored = new MuseTogether(new Store(restoredDir));
+  const restored = new MuseBuddies(new Store(restoredDir));
   await restored.send({ contacts: ["Them"], conversationId: "c", body: "from restored device" });
   await them.poll();
   assert.deepEqual(them.store.pendingMessages().map((m) => m.body), ["before backup", "after backup", "from restored device"]);
@@ -289,9 +289,9 @@ test("restores mark connections needs_repair when the peer can't accept skipped 
   const file = path.join(tmp, "n-me.backup");
   me.backupExport(file, PASS);
   const dir = path.join(tmp, "n-me-restored");
-  const result = MuseTogether.backupImport(dir, file, PASS) as { contacts: { status: string }[] };
+  const result = MuseBuddies.backupImport(dir, file, PASS) as { contacts: { status: string }[] };
   assert.equal(result.contacts[0].status, "needs_repair");
-  const restored = new MuseTogether(new Store(dir));
+  const restored = new MuseBuddies(new Store(dir));
   await assert.rejects(restored.send({ contacts: ["Them"], conversationId: "c", body: "x" }), /needs_repair/);
   // Receiving still works.
   await them.send({ contacts: ["Me"], conversationId: "c", body: "still hear you" });
@@ -299,7 +299,7 @@ test("restores mark connections needs_repair when the peer can't accept skipped 
   assert.equal(restored.store.pendingMessages()[0].body, "still hear you");
   assert.match(JSON.stringify(restored.status()), /needs_repair|Them/);
   // An existing setup is not overwritten without --force.
-  assert.throws(() => MuseTogether.backupImport(dir, file, PASS), /--force/);
+  assert.throws(() => MuseBuddies.backupImport(dir, file, PASS), /--force/);
 });
 
 test("stores created before later columns are migrated", () => {
@@ -322,7 +322,7 @@ test("the command-line interface drives a full exchange", async () => {
   const cli = path.resolve("src/client/cli.ts");
   const run = async (who: string, ...args: string[]): Promise<any> => {
     const { stdout } = await promisify(execFile)(process.execPath, ["--no-warnings", cli, ...args], {
-      env: { ...process.env, MUSETOGETHER_DIR: path.join(tmp, who) }
+      env: { ...process.env, MUSEBUDDIES_DIR: path.join(tmp, who) }
     });
     return JSON.parse(stdout);
   };
@@ -463,4 +463,38 @@ test("pages link versioned assets and the compose file downloads", async () => {
   assert.equal(compose.status, 200);
   assert.match(compose.headers.get("content-disposition") ?? "", /^attachment/);
   await compose.arrayBuffer();
+});
+
+test("installs from before the rename keep their store and settings", () => {
+  const saved = { HOME: process.env.HOME, a: process.env.MUSEBUDDIES_DIR, b: process.env.MUSETOGETHER_DIR, c: process.env.MUSEBUDDIES_RELAY_URL, d: process.env.MUSETOGETHER_RELAY_URL };
+  const home = fs.mkdtempSync(path.join(tmp, "home-"));
+  try {
+    delete process.env.MUSEBUDDIES_DIR;
+    delete process.env.MUSETOGETHER_DIR;
+    process.env.HOME = home;
+    assert.equal(storeDir(), path.join(home, ".musebuddies"));
+    fs.mkdirSync(path.join(home, ".musetogether"));
+    fs.writeFileSync(path.join(home, ".musetogether", "state.db"), "");
+    assert.equal(storeDir(), path.join(home, ".musetogether"), "an existing old store is used");
+    fs.mkdirSync(path.join(home, ".musebuddies", "lib"), { recursive: true });
+    assert.equal(storeDir(), path.join(home, ".musetogether"), "a reinstall's lib folder doesn't hide the old store");
+    fs.writeFileSync(path.join(home, ".musebuddies", "state.db"), "");
+    assert.equal(storeDir(), path.join(home, ".musebuddies"), "a new store wins once it exists");
+    process.env.MUSETOGETHER_DIR = "/old/dir";
+    assert.equal(storeDir(), "/old/dir");
+    process.env.MUSEBUDDIES_DIR = "/new/dir";
+    assert.equal(storeDir(), "/new/dir");
+    delete process.env.MUSEBUDDIES_RELAY_URL;
+    process.env.MUSETOGETHER_RELAY_URL = "https://old.example";
+    assert.equal(setting("RELAY_URL"), "https://old.example");
+    process.env.MUSEBUDDIES_RELAY_URL = "https://new.example";
+    assert.equal(setting("RELAY_URL"), "https://new.example");
+  } finally {
+    const restore = (k: string, v: string | undefined) => (v === undefined ? delete process.env[k] : (process.env[k] = v));
+    restore("HOME", saved.HOME);
+    restore("MUSEBUDDIES_DIR", saved.a);
+    restore("MUSETOGETHER_DIR", saved.b);
+    restore("MUSEBUDDIES_RELAY_URL", saved.c);
+    restore("MUSETOGETHER_RELAY_URL", saved.d);
+  }
 });
