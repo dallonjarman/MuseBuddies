@@ -5,7 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { PlanEvent, Priority, TimeSlot } from "../shared/protocol.ts";
 import { MuseBuddies, hookCheck, type SendOptions } from "./app.ts";
-import { Store, setting, storeDir } from "./store.ts";
+import { Store, storeDir } from "./store.ts";
 
 export { MuseBuddies, hookCheck } from "./app.ts";
 
@@ -120,7 +120,7 @@ export async function main(argv: string[]): Promise<void> {
   if (command === "backup" && sub === "import") {
     // Runs before any store is opened, since it replaces the database file.
     try {
-      const pass = setting("BACKUP_PASSPHRASE") ?? (await readStdin());
+      const pass = process.env.MUSEBUDDIES_BACKUP_PASSPHRASE ?? (await readStdin());
       print(MuseBuddies.backupImport(storeDir(), required("--file"), pass, argv.includes("--force")));
     } catch (err) {
       fail(err);
@@ -238,7 +238,7 @@ export async function main(argv: string[]): Promise<void> {
         print(app.groupDelete(required("--name")));
         break;
       case "backup export": {
-        const pass = setting("BACKUP_PASSPHRASE") ?? (await readStdin());
+        const pass = process.env.MUSEBUDDIES_BACKUP_PASSPHRASE ?? (await readStdin());
         print(app.backupExport(required("--file"), pass));
         break;
       }

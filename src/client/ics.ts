@@ -28,8 +28,7 @@ export function toIcs(event: PlanEvent, sentAt: string): string {
     "PRODID:-//MuseBuddies//EN",
     "METHOD:PUBLISH",
     "BEGIN:VEVENT",
-    // The UID domain predates the rename; keeping it means updates still replace existing calendar entries.
-    `UID:${escape(event.uid)}@musetogether`,
+    `UID:${escape(event.uid)}@musebuddies`,
     `DTSTAMP:${stamp(sentAt)}`,
     // Later updates to the same uid carry a higher sequence, so calendars replace the entry.
     `SEQUENCE:${Math.floor(Date.parse(sentAt) / 1000)}`,

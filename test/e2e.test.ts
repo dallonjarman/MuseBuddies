@@ -8,7 +8,7 @@ import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { after, before, test } from "node:test";
 import { MuseBuddies, hookCheck } from "../src/client/cli.ts";
-import { Store, setting, storeDir } from "../src/client/store.ts";
+import { Store } from "../src/client/store.ts";
 import { createServer } from "../src/server/main.ts";
 import { Relay } from "../src/server/relay.ts";
 
@@ -229,7 +229,7 @@ test("attached events render as iCalendar and keep their uid across updates", as
   const ics = them.ics(b.messageId);
   assert.match(ics, /DTSTART:20261023T023000Z/);
   assert.match(ics, /LOCATION:Olive\\, 12 Main St/);
-  assert.match(ics, new RegExp(`UID:${first.eventUid}@musetogether`));
+  assert.match(ics, new RegExp(`UID:${first.eventUid}@musebuddies`));
   await assert.rejects(me.send({ contacts: ["Them"], conversationId: "x", body: "bad", event: { title: "x", start: "not a date" } }), /ISO 8601/);
 });
 
@@ -284,7 +284,7 @@ test("backups restore identity and contacts without reusing nonces", async () =>
 test("restores mark connections needs_repair when the peer can't accept skipped nonces", async () => {
   const [me, them] = await ready("n-me", "n-them");
   await pair(me, "Them", them, "Me");
-  // Simulate a peer whose features were never learned (e.g. one running the original client).
+  // Simulate a peer whose features were never learned (e.g. an older client without the features frame).
   me.store.saveContact({ ...me.store.getContact("Them")!, peerFeatures: [] });
   const file = path.join(tmp, "n-me.backup");
   me.backupExport(file, PASS);
@@ -463,38 +463,4 @@ test("pages link versioned assets and the compose file downloads", async () => {
   assert.equal(compose.status, 200);
   assert.match(compose.headers.get("content-disposition") ?? "", /^attachment/);
   await compose.arrayBuffer();
-});
-
-test("installs from before the rename keep their store and settings", () => {
-  const saved = { HOME: process.env.HOME, a: process.env.MUSEBUDDIES_DIR, b: process.env.MUSETOGETHER_DIR, c: process.env.MUSEBUDDIES_RELAY_URL, d: process.env.MUSETOGETHER_RELAY_URL };
-  const home = fs.mkdtempSync(path.join(tmp, "home-"));
-  try {
-    delete process.env.MUSEBUDDIES_DIR;
-    delete process.env.MUSETOGETHER_DIR;
-    process.env.HOME = home;
-    assert.equal(storeDir(), path.join(home, ".musebuddies"));
-    fs.mkdirSync(path.join(home, ".musetogether"));
-    fs.writeFileSync(path.join(home, ".musetogether", "state.db"), "");
-    assert.equal(storeDir(), path.join(home, ".musetogether"), "an existing old store is used");
-    fs.mkdirSync(path.join(home, ".musebuddies", "lib"), { recursive: true });
-    assert.equal(storeDir(), path.join(home, ".musetogether"), "a reinstall's lib folder doesn't hide the old store");
-    fs.writeFileSync(path.join(home, ".musebuddies", "state.db"), "");
-    assert.equal(storeDir(), path.join(home, ".musebuddies"), "a new store wins once it exists");
-    process.env.MUSETOGETHER_DIR = "/old/dir";
-    assert.equal(storeDir(), "/old/dir");
-    process.env.MUSEBUDDIES_DIR = "/new/dir";
-    assert.equal(storeDir(), "/new/dir");
-    delete process.env.MUSEBUDDIES_RELAY_URL;
-    process.env.MUSETOGETHER_RELAY_URL = "https://old.example";
-    assert.equal(setting("RELAY_URL"), "https://old.example");
-    process.env.MUSEBUDDIES_RELAY_URL = "https://new.example";
-    assert.equal(setting("RELAY_URL"), "https://new.example");
-  } finally {
-    const restore = (k: string, v: string | undefined) => (v === undefined ? delete process.env[k] : (process.env[k] = v));
-    restore("HOME", saved.HOME);
-    restore("MUSEBUDDIES_DIR", saved.a);
-    restore("MUSETOGETHER_DIR", saved.b);
-    restore("MUSEBUDDIES_RELAY_URL", saved.c);
-    restore("MUSETOGETHER_RELAY_URL", saved.d);
-  }
 });

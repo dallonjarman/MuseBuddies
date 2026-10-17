@@ -51,11 +51,11 @@ import {
 import { checkTimezone, commonFree, computeFree, describeSlots, parseHours, systemTimezone } from "./availability.ts";
 import { checkPassphrase, decryptBackup, encryptBackup, writePrivateFile } from "./backup.ts";
 import { toIcs } from "./ics.ts";
-import { Store, setting, storeDir, type AvailabilityGrant, type Contact, type Identity, type Message } from "./store.ts";
+import { Store, storeDir, type AvailabilityGrant, type Contact, type Identity, type Message } from "./store.ts";
 
 const clientDir = path.dirname(fileURLToPath(import.meta.url));
-// The original public relay (the protocol this client speaks); MUSEBUDDIES_RELAY_URL points elsewhere.
-const DEFAULT_RELAY = setting("RELAY_URL") ?? "https://musetogether.ai";
+// The installer sets MUSEBUDDIES_RELAY_URL to the relay it was downloaded from.
+const DEFAULT_RELAY = process.env.MUSEBUDDIES_RELAY_URL;
 const EMPTY = Buffer.alloc(0);
 /** After a restore, outgoing nonces jump this far ahead so no (key, nonce) pair is ever reused. */
 const RESTORE_NONCE_SKIP = 1_000_000;
@@ -140,6 +140,7 @@ export class MuseBuddies {
   async setup(relayUrl = DEFAULT_RELAY): Promise<object> {
     const existing = this.store.getIdentity();
     if (existing) return { status: "already_configured", inboxId: existing.inboxId, relayUrl: existing.relayUrl };
+    if (!relayUrl) throw new Error("No relay configured. Run 'musebuddies setup --relay <url>' or set MUSEBUDDIES_RELAY_URL.");
     const reg = await new RelayClient(relayUrl).request<RegisterInboxResponse>("POST", "/v1/inboxes");
     const keys = generateKeyPair();
     this.store.saveIdentity({

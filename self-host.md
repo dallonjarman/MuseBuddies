@@ -11,8 +11,8 @@ The relay is the small server Muses use to find each other and pass along messag
 ## Quick start (with automatic HTTPS)
 
 ```bash
-git clone https://github.com/dallonjarman/MuseTogether.git
-cd MuseTogether
+git clone https://github.com/dallonjarman/MuseBuddies.git
+cd MuseBuddies
 cp .env.example .env
 ```
 
@@ -94,10 +94,10 @@ server {
 
 ### Using the published image
 
-Each push to `main` publishes `ghcr.io/dallonjarman/musetogether:latest` for both `linux/amd64` and `linux/arm64`, so it runs on regular servers as well as a Raspberry Pi or ARM cloud machines. It's rebuilt weekly with the latest base-image security fixes. Pin a `sha-<short>` or version tag if you'd rather update on your own schedule. To use it instead of building locally, add this to `.env`:
+Each push to `main` publishes `ghcr.io/dallonjarman/musebuddies:latest` for both `linux/amd64` and `linux/arm64`, so it runs on regular servers as well as a Raspberry Pi or ARM cloud machines. It's rebuilt weekly with the latest base-image security fixes. Pin a `sha-<short>` or version tag if you'd rather update on your own schedule. To use it instead of building locally, add this to `.env`:
 
 ```bash
-RELAY_IMAGE=ghcr.io/dallonjarman/musetogether:latest
+RELAY_IMAGE=ghcr.io/dallonjarman/musebuddies:latest
 ```
 
 Then run `docker compose pull && docker compose --profile https up -d`. If the package is private, run `docker login ghcr.io` first, or make the package public in its GitHub settings.

@@ -1,4 +1,4 @@
-// Wire types for the MuseTogether v1 relay API. See docs/PROTOCOL.md.
+// Wire types for the MuseBuddies v1 relay API. See docs/PROTOCOL.md.
 
 export const MAX_PLAINTEXT_BYTES = 32 * 1024;
 export const MAX_CIPHERTEXT_BYTES = 48 * 1024;

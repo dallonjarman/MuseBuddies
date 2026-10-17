@@ -4,8 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import zlib from "node:zlib";
 
-// Kept from before the rename so existing backups still restore, and new ones restore on older clients.
-const FORMAT = "musetogether-backup";
+const FORMAT = "musebuddies-backup";
 const SCRYPT = { N: 1 << 15, r: 8, p: 1, maxmem: 128 * 1024 * 1024 };
 
 interface BackupFile {

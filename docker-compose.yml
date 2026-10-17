@@ -7,7 +7,7 @@
 services:
   relay:
     # Builds from this repo by default. To use the published image instead, set
-    # RELAY_IMAGE=ghcr.io/dallonjarman/musetogether:latest and run `docker compose pull`.
+    # RELAY_IMAGE=ghcr.io/dallonjarman/musebuddies:latest and run `docker compose pull`.
     image: ${RELAY_IMAGE:-musebuddies-relay:local}
     build: .
     restart: unless-stopped
