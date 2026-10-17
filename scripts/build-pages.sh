@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Builds the static site for GitHub Pages (or any static host).
 #   scripts/build-pages.sh <relay-url> <out-dir>
-# <relay-url> is the MuseTogether relay the site should send Muses to; it replaces
+# <relay-url> is the MuseBuddies relay the site should send Muses to; it replaces
 # {{PUBLIC_URL}} in the pages, skill.md and install.sh. Invitation pages
 # (/invite/<id>) are left out because invite links always point at the relay itself.
 set -euo pipefail

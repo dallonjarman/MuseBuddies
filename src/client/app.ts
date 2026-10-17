@@ -54,7 +54,8 @@ import { toIcs } from "./ics.ts";
 import { Store, storeDir, type AvailabilityGrant, type Contact, type Identity, type Message } from "./store.ts";
 
 const clientDir = path.dirname(fileURLToPath(import.meta.url));
-const DEFAULT_RELAY = process.env.MUSETOGETHER_RELAY_URL ?? "https://musetogether.ai";
+// The installer sets MUSEBUDDIES_RELAY_URL to the relay it was downloaded from.
+const DEFAULT_RELAY = process.env.MUSEBUDDIES_RELAY_URL;
 const EMPTY = Buffer.alloc(0);
 /** After a restore, outgoing nonces jump this far ahead so no (key, nonce) pair is ever reused. */
 const RESTORE_NONCE_SKIP = 1_000_000;
@@ -118,7 +119,7 @@ export interface SendOptions {
   availabilityResponse?: AvailabilityResponse;
 }
 
-export class MuseTogether {
+export class MuseBuddies {
   readonly store: Store;
   constructor(store = new Store()) {
     this.store = store;
@@ -126,7 +127,7 @@ export class MuseTogether {
 
   private session(): { identity: Identity; relay: RelayClient; keys: KeyPair } {
     const identity = this.store.getIdentity();
-    if (!identity) throw new Error("MuseTogether is not set up. Run 'musetogether setup' first.");
+    if (!identity) throw new Error("MuseBuddies is not set up. Run 'musebuddies setup' first.");
     return {
       identity,
       relay: new RelayClient(identity.relayUrl, identity.token),
@@ -139,6 +140,7 @@ export class MuseTogether {
   async setup(relayUrl = DEFAULT_RELAY): Promise<object> {
     const existing = this.store.getIdentity();
     if (existing) return { status: "already_configured", inboxId: existing.inboxId, relayUrl: existing.relayUrl };
+    if (!relayUrl) throw new Error("No relay configured. Run 'musebuddies setup --relay <url>' or set MUSEBUDDIES_RELAY_URL.");
     const reg = await new RelayClient(relayUrl).request<RegisterInboxResponse>("POST", "/v1/inboxes");
     const keys = generateKeyPair();
     this.store.saveIdentity({
@@ -1021,7 +1023,7 @@ export class MuseTogether {
   hookPrepare(hooksDir = path.join(os.homedir(), "hooks")): object {
     const { identity } = this.session();
     const scriptDir = path.join(hooksDir, "scripts");
-    const stateDir = path.join(hooksDir, "state", "musetogether");
+    const stateDir = path.join(hooksDir, "state", "musebuddies");
     fs.mkdirSync(scriptDir, { recursive: true });
     fs.mkdirSync(stateDir, { recursive: true, mode: 0o700 });
     // curl reads the token from a private file so it never appears in argv or logs.
@@ -1030,10 +1032,10 @@ export class MuseTogether {
     const store = path.resolve(this.store.dir);
     writePrivateFile(path.join(stateDir, "config.json"), JSON.stringify({ relayUrl: identity.relayUrl, storeDir: store, nodePath: process.execPath, cliPath }, null, 2) + "\n");
     const q = (s: string): string => `'${s.replaceAll("'", "'\\''")}'`;
-    const command = `MUSETOGETHER_DIR=${q(store)} ${q(process.execPath)} --no-warnings ${q(cliPath)}`;
+    const command = `MUSEBUDDIES_DIR=${q(store)} ${q(process.execPath)} --no-warnings ${q(cliPath)}`;
     const workerPromptPath = path.join(stateDir, "worker.md");
     writePrivateFile(workerPromptPath, fs.readFileSync(path.join(clientDir, "receive-worker.md"), "utf8").replaceAll("__CLI__", command));
-    const scriptPath = path.join(scriptDir, "musetogether-receive.sh");
+    const scriptPath = path.join(scriptDir, "musebuddies-receive.sh");
     fs.copyFileSync(path.join(clientDir, "receive-hook.sh"), scriptPath);
     fs.chmodSync(scriptPath, 0o700);
     return { scriptPath, workerPromptPath, pollIntervalSecs: 60, scriptTimeoutSecs: 20 };

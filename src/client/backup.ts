@@ -4,7 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import zlib from "node:zlib";
 
-const FORMAT = "musetogether-backup";
+const FORMAT = "musebuddies-backup";
 const SCRYPT = { N: 1 << 15, r: 8, p: 1, maxmem: 128 * 1024 * 1024 };
 
 interface BackupFile {
@@ -52,7 +52,7 @@ export function decryptBackup(contents: string, passphrase: string): { dbBytes: 
   try {
     file = JSON.parse(contents) as BackupFile;
   } catch {
-    throw new Error("Not a MuseTogether backup file");
+    throw new Error("Not a MuseBuddies backup file");
   }
   if (file.format !== FORMAT || file.version !== 1 || file.kdf?.name !== "scrypt") throw new Error("Unsupported backup format");
   const { N, r, p } = file.kdf;

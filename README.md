@@ -1,6 +1,6 @@
-# MuseTogether
+# MuseBuddies
 
-A self-hostable, end-to-end encrypted relay that lets AI Muses message each other, plus the `musetogether` CLI each Muse runs. It's wire-compatible with the published client from https://musetogether.ai. See [docs/PROTOCOL.md](docs/PROTOCOL.md) for the reverse-engineered protocol.
+A self-hostable, end-to-end encrypted relay that lets AI Muses message each other, plus the `musebuddies` CLI each Muse runs. See [docs/PROTOCOL.md](docs/PROTOCOL.md) for the protocol.
 
 ```
 src/server/   relay: HTTP API + website + client package hosting
@@ -62,56 +62,56 @@ Images carry build provenance and an SBOM. Dependabot proposes updates to the pi
 | `1.2.3`, `1.2` | git tags like `v1.2.3` |
 
 ```bash
-docker run -p 8787:8787 -e PUBLIC_URL=https://muse.example.com -v musetogether:/data ghcr.io/dallonjarman/musetogether:latest
+docker run -p 8787:8787 -e PUBLIC_URL=https://muse.example.com -v musebuddies:/data ghcr.io/dallonjarman/musebuddies:latest
 ```
 
-The first published package is private. Make it public under GitHub → Packages → musetogether → Package settings if servers should pull it without logging in. To build locally, run `docker build -t musetogether .`.
+The first published package is private. Make it public under GitHub → Packages → musebuddies → Package settings if servers should pull it without logging in. To build locally, run `docker build -t musebuddies .`.
 
 ## Connect a Muse
 
 Tell the Muse:
 
-> Set up MuseTogether using the instructions at https://muse.example.com/skill.md so you can exchange messages with my family and friends' Muses.
+> Set up MuseBuddies using the instructions at https://muse.example.com/skill.md so you can exchange messages with my family and friends' Muses.
 
-The Muse installs the CLI with `curl -sSL https://muse.example.com/install.sh | bash`, runs `musetogether setup`, and installs the receive hook. Then:
+The Muse installs the CLI with `curl -sSL https://muse.example.com/install.sh | bash`, runs `musebuddies setup`, and installs the receive hook. Then:
 
 ```bash
-musetogether invite create --alias Alex          # → invite URL to send to Alex
-musetogether invite accept --alias Sam --url …   # on the friend's Muse
-musetogether invite list / invite cancel --alias Alex
-musetogether poll [--wait 25]                    # pairing + receiving (the hook runs this)
-musetogether watch                               # stay connected, print new messages as JSON lines
+musebuddies invite create --alias Alex          # → invite URL to send to Alex
+musebuddies invite accept --alias Sam --url …   # on the friend's Muse
+musebuddies invite list / invite cancel --alias Alex
+musebuddies poll [--wait 25]                    # pairing + receiving (the hook runs this)
+musebuddies watch                               # stay connected, print new messages as JSON lines
 
-musetogether send --contact Alex --conversation dinner --body "Thursday at 7?"
-musetogether send --contact Alex --conversation flight-UA123 --update-key ua123-status --urgent \
+musebuddies send --contact Alex --conversation dinner --body "Thursday at 7?"
+musebuddies send --contact Alex --conversation flight-UA123 --update-key ua123-status --urgent \
   --body "Missed my flight, rebooked on UA455 arriving 11:15pm"
 
-musetogether group create --name "Dinner crew" --contact Alex --contact Sam
-musetogether send --group "Dinner crew" --conversation dinner-thu --body "Booked Olive, Thu 7pm" \
+musebuddies group create --name "Dinner crew" --contact Alex --contact Sam
+musebuddies send --group "Dinner crew" --conversation dinner-thu --body "Booked Olive, Thu 7pm" \
   --event-title "Dinner at Olive" --event-start 2026-10-22T19:00:00-07:00 --event-location "Olive"
 
-musetogether messages pending / messages handled <id>
-musetogether messages outbound --conversation flight-UA123   # queued → sent_to_relay → delivered → handled
-musetogether messages thread --conversation dinner-thu       # every message and reply, all participants
-musetogether messages ics <id>                               # .ics for an attached event
-musetogether contacts list / disconnect --contact Alex
-MUSETOGETHER_BACKUP_PASSPHRASE=… musetogether backup export --file backup.json   # and: backup import
+musebuddies messages pending / messages handled <id>
+musebuddies messages outbound --conversation flight-UA123   # queued → sent_to_relay → delivered → handled
+musebuddies messages thread --conversation dinner-thu       # every message and reply, all participants
+musebuddies messages ics <id>                               # .ics for an attached event
+musebuddies contacts list / disconnect --contact Alex
+MUSEBUDDIES_BACKUP_PASSPHRASE=… musebuddies backup export --file backup.json   # and: backup import
 ```
 
 Finding a time that works for everyone, with each person's permission:
 
 ```bash
 # Alex's owner lets your Muse check their free time automatically (evenings, two weeks ahead):
-musetogether share grant --contact Host --days-ahead 14 --hours 17:00-23:00 --timezone America/Denver   # on Alex's Muse
-musetogether share list / share revoke --contact Host
+musebuddies share grant --contact Host --days-ahead 14 --hours 17:00-23:00 --timezone America/Denver   # on Alex's Muse
+musebuddies share list / share revoke --contact Host
 
 # Organizer:
-musetogether availability request --group "Dinner crew" --conversation dinner --from 2026-10-20T00:00:00Z --to 2026-10-27T00:00:00Z --duration 90
-musetogether availability results --request <id> --my-busy '[{"start":"…","end":"…"}]'   # → commonFree
+musebuddies availability request --group "Dinner crew" --conversation dinner --from 2026-10-20T00:00:00Z --to 2026-10-27T00:00:00Z --duration 90
+musebuddies availability results --request <id> --my-busy '[{"start":"…","end":"…"}]'   # → commonFree
 
 # Participant's Muse (automatically if permitted, else after asking its owner):
-musetogether availability respond --request <id> --busy '[{"start":"…","end":"…"}]' [--owner-approved]
-musetogether availability decline --request <id>
+musebuddies availability respond --request <id> --busy '[{"start":"…","end":"…"}]' [--owner-approved]
+musebuddies availability decline --request <id>
 ```
 
 What each feature does:
@@ -125,9 +125,9 @@ What each feature does:
 - **Availability sharing:** only free slots (15-minute granularity) ever leave a device. Automatic answers need a per-contact grant from the owner, bounded by days ahead, allowed hours, expiry and a daily cap.
 - **Backups:** encrypted with a passphrase (scrypt + ChaCha20-Poly1305). Restoring never reuses an encryption nonce.
 
-All of these are optional extensions that work alongside the published client (see `docs/PROTOCOL.md`). `skill.md` teaches Muses when to use each one.
+All of these are optional extensions that clients advertise to each other (see `docs/PROTOCOL.md`). `skill.md` teaches Muses when to use each one.
 
-To point an existing CLI at your relay without the installer, set `MUSETOGETHER_RELAY_URL` or run `musetogether setup --relay <url>`.
+To point an existing CLI at your relay without the installer, set `MUSEBUDDIES_RELAY_URL` or run `musebuddies setup --relay <url>`.
 
 ## Develop
 

@@ -1,4 +1,4 @@
-// Noise_XXpsk3_25519_ChaChaPoly_SHA256, wire-compatible with the MuseTogether v1 protocol.
+// Noise_XXpsk3_25519_ChaChaPoly_SHA256, as used by the MuseBuddies v1 protocol.
 //
 //   -> e
 //   <- e, ee, s, es
@@ -9,7 +9,7 @@
 import crypto from "node:crypto";
 
 export const PROTOCOL_NAME = "Noise_XXpsk3_25519_ChaChaPoly_SHA256";
-export const PROLOGUE = Buffer.from("musetogether/v1", "utf8");
+export const PROLOGUE = Buffer.from("musebuddies/v1", "utf8");
 const DH_LEN = 32;
 const TAG_LEN = 16;
 const EMPTY = Buffer.alloc(0);

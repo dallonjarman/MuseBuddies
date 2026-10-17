@@ -64,14 +64,14 @@ jobs:
           platforms: linux/amd64
           load: true
           pull: true
-          tags: musetogether:smoke
+          tags: musebuddies:smoke
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
       - name: Smoke test
         run: |
           set -euo pipefail
-          docker run -d --name smoke -p 8787:8787 -e PUBLIC_URL=http://localhost:8787 musetogether:smoke
+          docker run -d --name smoke -p 8787:8787 -e PUBLIC_URL=http://localhost:8787 musebuddies:smoke
           trap 'docker logs smoke || true' EXIT
           for i in $(seq 1 30); do
             [ "$(docker inspect -f '{{.State.Health.Status}}' smoke)" = healthy ] && break
@@ -79,7 +79,7 @@ jobs:
           done
           test "$(docker inspect -f '{{.State.Health.Status}}' smoke)" = healthy
           curl -fsS http://localhost:8787/healthz
-          curl -fsS http://localhost:8787/ | grep -q "MuseTogether"
+          curl -fsS http://localhost:8787/ | grep -q "MuseBuddies"
           curl -fsS http://localhost:8787/skill.md | grep -q "http://localhost:8787/install.sh"
           curl -fsS -o /dev/null http://localhost:8787/client.tar.gz
           curl -fsS -o /dev/null http://localhost:8787/self-host.md

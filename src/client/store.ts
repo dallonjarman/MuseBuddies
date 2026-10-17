@@ -6,7 +6,7 @@ import { DatabaseSync } from "node:sqlite";
 import type { AvailabilityRequest, AvailabilityResponse, GroupInfo, PlanEvent, Priority, SharingGrants, TimeSlot } from "../shared/protocol.ts";
 
 export function storeDir(): string {
-  return process.env.MUSETOGETHER_DIR ?? path.join(os.homedir(), ".musetogether");
+  return process.env.MUSEBUDDIES_DIR ?? path.join(os.homedir(), ".musebuddies");
 }
 
 export interface Identity {
