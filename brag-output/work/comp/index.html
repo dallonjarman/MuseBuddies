@@ -1,0 +1,514 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>MuseBuddies brag</title>
+<link rel="stylesheet" href="demo.css">
+<style>
+  /* Every frame is driven by renderAt(t); nothing animates on its own. */
+  *, *::before, *::after { animation: none !important; transition: none !important; box-sizing: border-box; }
+  html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: #07061a; }
+  body { font-family: "Inter", system-ui, sans-serif; -webkit-font-smoothing: antialiased; color: #fff; }
+  svg { display: block; }
+  .scene { position: absolute; inset: 0; will-change: opacity, transform; }
+  .abs { position: absolute; }
+
+  /* night sky */
+  #sky { position: absolute; inset: 0; background: radial-gradient(1300px 700px at 50% -10%, #2c2163 0%, transparent 62%), radial-gradient(1000px 600px at 50% 112%, #0f3446 0%, transparent 60%), linear-gradient(#0a0920, #07061a); }
+  #stars { position: absolute; inset: 0; }
+  .aurora { position: absolute; width: 900px; height: 900px; border-radius: 50%; filter: blur(120px); opacity: 0.45; }
+
+  /* 1. the group chat */
+  #s1 { background: #f6f5fb; color: #0b0b0f; }
+  #s1 .hl { position: absolute; left: 150px; top: 250px; font-weight: 800; font-size: 132px; line-height: 1.02; letter-spacing: -0.045em; }
+  #s1 .hl div { will-change: transform, opacity; }
+  #s1 .hl .bad { color: #e5484d; }
+  #s1 .sub { position: absolute; left: 156px; top: 700px; font-size: 34px; font-weight: 500; color: #5d5d6b; letter-spacing: -0.01em; }
+  .gc { position: absolute; left: 1090px; top: 90px; width: 660px; height: 900px; border-radius: 44px; background: #fff; box-shadow: 0 50px 120px -40px rgb(30 20 80 / 0.35), 0 0 0 1px #e8e8ec; overflow: hidden; }
+  .gc-head { position: absolute; left: 0; right: 0; top: 0; height: 120px; display: flex; align-items: center; gap: 18px; padding: 0 34px; border-bottom: 1px solid #ececf1; background: #fff; z-index: 2; }
+  .gc-head .dots { display: flex; }
+  .gc-head .dots i { width: 46px; height: 46px; border-radius: 50%; margin-right: -14px; box-shadow: 0 0 0 3px #fff; }
+  .gc-head b { font-size: 28px; letter-spacing: -0.02em; }
+  .gc-head small { display: block; font-size: 20px; color: #8d8d96; font-weight: 500; }
+  .gc-count { margin-left: auto; padding: 10px 18px; border-radius: 999px; background: #fdecec; color: #e5484d; font-weight: 700; font-size: 24px; font-variant-numeric: tabular-nums; }
+  .gc-list { position: absolute; left: 0; right: 0; top: 120px; bottom: 0; overflow: hidden; -webkit-mask-image: linear-gradient(transparent, #000 90px); }
+  .gc-roll { position: absolute; left: 30px; right: 30px; top: 0; }
+  .gc-m { position: absolute; left: 0; right: 0; height: 76px; display: flex; flex-direction: column; justify-content: flex-end; transform-origin: left bottom; }
+  .gc-m p { margin: 0; max-width: 78%; padding: 12px 20px; border-radius: 24px; background: #efeff4; font-size: 25px; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; align-self: flex-start; }
+  .gc-m small { font-size: 16px; font-weight: 650; color: #9a9aa6; margin: 0 0 3px 16px; }
+  .gc-m.me { transform-origin: right bottom; }
+  .gc-m.me p { align-self: flex-end; background: #6d4aff; color: #fff; }
+
+  /* shared bits */
+  .wm { font-weight: 800; letter-spacing: -0.055em; background: linear-gradient(120deg, #b9a9ff 0%, #8a6dff 45%, #e58cc2 100%); -webkit-background-clip: text; background-clip: text; color: transparent; white-space: nowrap; }
+  .mz { position: absolute; width: 150px; height: 150px; filter: drop-shadow(0 14px 18px rgb(5 2 30 / 0.5)); will-change: transform; }
+  .mz .dm-m { width: 100%; height: 100%; }
+  .is-happy .dm-eyes { opacity: 0; } .is-happy .dm-happy { opacity: 1; }
+  .dm-happy { opacity: 0; }
+  .say { position: absolute; left: 50%; bottom: calc(100% + 14px); width: max-content; max-width: 420px; padding: 14px 22px; border-radius: 26px; background: #fff; color: #16161d; font-size: 30px; font-weight: 650; letter-spacing: -0.015em; line-height: 1.25; text-align: center; box-shadow: 0 18px 40px -12px rgb(5 2 40 / 0.6); transform-origin: 50% 100%; }
+  .say::after { content: ""; position: absolute; top: 100%; left: 50%; width: 18px; height: 18px; background: #fff; translate: -50% -50%; rotate: 45deg; border-radius: 3px; }
+  .say .dots { display: inline-flex; gap: 7px; padding: 6px 4px; }
+  .say .dots i { width: 11px; height: 11px; border-radius: 50%; background: #8d8d96; }
+  .cap { position: absolute; font-weight: 750; letter-spacing: -0.035em; line-height: 1.05; color: #fff; }
+  .cap em { font-style: normal; background: linear-gradient(120deg, #b9a9ff, #e58cc2); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .cloud { position: absolute; width: 520px; height: 321px; }
+  .cloud > svg { width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 30px 60px rgb(110 80 255 / 0.4)); }
+  .cloud .lbl { position: absolute; left: 50%; top: 61%; translate: -50% -50%; display: flex; gap: 10px; align-items: center; white-space: nowrap; font-size: 25px; font-weight: 700; color: #3b2f8f; }
+  .cloud .chip { position: absolute; left: 50%; top: 77%; translate: -50% -50%; white-space: nowrap; font-size: 15px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #6c5fb8; }
+  .lock { width: 24px; height: 24px; }
+  .spark { position: absolute; width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 50%; }
+
+  /* 3. the phone (the project's own phone styles, scaled up) */
+  .phone-wrap { position: absolute; left: 230px; top: 36px; width: 300px; transform-origin: 0 0; }
+  .phone-wrap .dm-device { transform: perspective(1600px) rotateY(14deg); }
+  .dm-screen { font-family: "Inter", sans-serif; }
+
+  /* 4. sealed */
+  .node { position: absolute; display: grid; justify-items: center; gap: 14px; }
+  .av { position: relative; width: 210px; height: 210px; border-radius: 50%; overflow: hidden; box-shadow: 0 0 0 6px rgb(255 255 255 / 0.12), 0 30px 60px -20px rgb(0 0 0 / 0.6); }
+  .av .dm-m { position: absolute; left: 50%; top: 4px; width: 240px; height: 240px; translate: -50% 0; }
+  .node b { font-size: 34px; letter-spacing: -0.02em; }
+  .wire { position: absolute; left: 600px; top: 520px; width: 720px; height: 190px; border-radius: 30px; border: 3px dashed rgb(155 133 255 / 0.55); background: rgb(155 133 255 / 0.08); display: grid; place-items: center; align-content: center; gap: 12px; overflow: hidden; }
+  .wire small { font-size: 18px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #b9a9ff; }
+  .wire code { font: 600 30px/1.3 ui-monospace, "SF Mono", Menlo, monospace; color: #7ef0c0; letter-spacing: 0.02em; }
+  .pkt { position: absolute; top: 50%; width: 18px; height: 18px; margin: -9px 0 0 -9px; border-radius: 50%; background: #fff; box-shadow: 0 0 26px #9b85ff, 0 0 8px #fff; }
+  .bubble { position: absolute; padding: 18px 28px; border-radius: 30px; font-size: 34px; font-weight: 600; letter-spacing: -0.02em; white-space: nowrap; box-shadow: 0 20px 40px -14px rgb(0 0 0 / 0.5); }
+  .bubble.me { background: linear-gradient(160deg, #8a6dff, #6a45f5); color: #fff; }
+  .bubble.them { background: #262534; color: #fff; }
+
+  /* 5. group */
+  .agree { position: absolute; display: flex; gap: 12px; align-items: center; padding: 14px 28px; border-radius: 999px; background: #12a150; color: #fff; font-size: 32px; font-weight: 750; box-shadow: 0 20px 50px -10px rgb(18 161 80 / 0.7); white-space: nowrap; }
+  .agree svg { width: 30px; height: 30px; }
+  .card { position: absolute; display: flex; align-items: center; gap: 22px; padding: 22px 30px 22px 22px; border-radius: 28px; background: #f7f6fb; color: #16161d; box-shadow: 0 40px 80px -30px rgb(0 0 0 / 0.7); }
+  .card .date { display: grid; justify-items: center; width: 92px; padding: 8px 0 10px; border-radius: 18px; background: #fff; box-shadow: 0 0 0 1px #e6e4ef; line-height: 1.05; }
+  .card .date small { font-size: 18px; font-weight: 800; color: #e5484d; letter-spacing: 0.06em; }
+  .card .date b { font-size: 44px; }
+  .card .ev b { display: block; font-size: 32px; letter-spacing: -0.02em; }
+  .card .ev small { display: block; font-size: 24px; color: #5d5d6b; margin-top: 4px; }
+  .card .ok { margin-left: 10px; padding: 8px 16px; border-radius: 999px; background: rgb(18 161 80 / 0.14); color: #0d7f3f; font-size: 22px; font-weight: 750; white-space: nowrap; }
+  #confetti { position: absolute; inset: 0; }
+
+  /* 6. outro */
+  .pill { position: absolute; padding: 18px 34px; border-radius: 999px; background: rgb(255 255 255 / 0.08); box-shadow: inset 0 0 0 2px rgb(155 133 255 / 0.5); font-size: 34px; font-weight: 650; color: #fff; white-space: nowrap; }
+  .fine { position: absolute; font-size: 30px; font-weight: 550; color: #b8b5d3; white-space: nowrap; }
+</style>
+</head>
+<body>
+  <div id="sky"><canvas id="stars" width="1920" height="1080"></canvas><i class="aurora" id="au1" style="background:#6d4aff"></i><i class="aurora" id="au2" style="background:#1fb5c9"></i><i class="aurora" id="au3" style="background:#d9468f"></i></div>
+
+  <!-- 2. reveal -->
+  <div class="scene" id="s2">
+    <div class="mz" id="r-you" data-muse="you"></div>
+    <div class="mz" id="r-them" data-muse="them"></div>
+    <div class="mz" id="r-sam" data-muse="sam"></div>
+    <div class="mz" id="r-priya" data-muse="priya"></div>
+    <div class="wm abs" id="r-wm" style="font-size:200px; left:0; right:0; top:300px; text-align:center">MuseBuddies</div>
+    <div class="cap" id="r-tag" style="font-size:76px; left:0; right:0; top:610px; text-align:center">Let your Muse talk to <em>theirs.</em></div>
+  </div>
+
+  <!-- 3. muses meet -->
+  <div class="scene" id="s3">
+    <div class="phone-wrap" id="phone">
+      <div class="dm-device">
+        <div class="dm-screen">
+          <span class="dm-island"></span>
+          <div class="dm-status"><time>9:41</time><span class="dm-sb"><svg viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5.5" width="3" height="6.5" rx="1"/><rect x="10" y="3" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></svg><span class="dm-batt">82</span></span></div>
+          <div class="dm-top">
+            <span class="dm-btn"><svg viewBox="0 0 24 24"><path d="M5 8h14M5 12h14M5 16h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><i></i></span>
+            <span class="dm-who"><span class="dm-avatar" id="ph-av" style="--avbg:#f3efe8" data-muse="you"></span><b>Phaedra</b></span>
+            <span class="dm-btn"><svg viewBox="0 0 24 24"><rect x="4" y="8" width="16" height="4" rx="1" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M5.5 12v8h13v-8M12 8v12M12 8c-1.5-3.5-5-4-5-1.5S10 8 12 8Zm0 0c1.5-3.5 5-4 5-1.5S14 8 12 8Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></span>
+          </div>
+          <div class="dm-chat" id="ph-chat">
+            <p class="dm-stamp">6:08 AM</p>
+            <div class="dm-b muse">Morning! Your 9:30 got pushed to 10. Grab a jacket ☔</div>
+            <p class="dm-stamp">Now</p>
+            <div class="dm-b me" id="ph-sent">dinner with Alex this week?</div>
+            <div class="dm-b muse" id="ph-reply">On it! Heading to the relay 💬</div>
+          </div>
+          <div class="dm-composer" id="ph-comp"><span class="dm-plus"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span><span class="dm-input"><span class="dm-ph">Message</span><span class="dm-typed" id="ph-typed"></span></span><span class="dm-send"><svg viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+          <div class="dm-tabs"><span class="on"><svg viewBox="0 0 24 24"><path d="M12 4c4.7 0 8.5 3.1 8.5 7s-3.8 7-8.5 7c-1 0-2-.1-2.9-.4L5 19.5l1.2-3.4C4.5 14.8 3.5 13 3.5 11c0-3.9 3.8-7 8.5-7Z" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></span><span><svg viewBox="0 0 24 24"><rect x="6" y="3.5" width="14" height="17" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M6 8H4.5v9.5a3 3 0 0 0 3 3M10 8h6M10 12h6M10 16h3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span><span><svg viewBox="0 0 24 24"><path d="M9 17.5h6M10 21h4M12 3a6 6 0 0 0-3.6 10.8c.6.5.9 1.1.9 1.8v1.9h5.4v-1.9c0-.7.3-1.3.9-1.8A6 6 0 0 0 12 3Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="m8.5 12 2.5 2.5 4.5-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span><svg viewBox="0 0 24 24"><circle cx="7.5" cy="7.5" r="3.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="m16.5 3.5 4 6.5h-8Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><rect x="4" y="13.5" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8"/><rect x="13" y="13.5" width="7" height="7" rx="3.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></span></div>
+          <span class="dm-home"></span>
+        </div>
+      </div>
+    </div>
+    <div class="cloud" id="m-cloud"></div>
+    <div class="cap" id="m-cap" style="font-size:84px; left:860px; top:150px; width:1000px; text-align:center">Your Muse meets <em>theirs.</em></div>
+  </div>
+
+  <!-- 4. sealed -->
+  <div class="scene" id="s4">
+    <div class="cap" id="e-cap" style="font-size:88px; left:0; right:0; top:170px; text-align:center">Only the two Muses can <em>read it.</em></div>
+    <div class="node" id="e-l" style="left:250px; top:500px"><div class="av" style="background:#f3efe8" data-muse="you"></div><b>Phaedra</b></div>
+    <div class="node" id="e-r" style="left:1460px; top:500px"><div class="av" style="background:#f4ecfd" data-muse="them"></div><b>Bramble</b></div>
+    <div class="wire" id="e-wire"><small>The relay sees</small><code id="e-code"></code><i class="pkt" id="e-pkt"></i></div>
+    <div class="bubble me" id="e-b1">Thursday at 7 works for us!</div>
+    <div class="bubble them" id="e-b2">Thursday at 7 works for us!</div>
+  </div>
+
+  <!-- 5. the whole group -->
+  <div class="scene" id="s5">
+    <div class="cap" id="g-cap" style="font-size:88px; left:0; right:0; top:110px; text-align:center">Whole groups. <em>One plan.</em></div>
+    <div class="cloud" id="g-cloud"></div>
+    <div class="agree" id="g-agree"><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Everyone agreed</div>
+    <div class="card" id="g-card"><span class="date"><small>SAT</small><b>24</b></span><span class="ev"><b>Sam's birthday dinner</b><small>8:00 PM · Sushi Kaz</small></span><span class="ok">✓ Added</span></div>
+    <canvas id="confetti" width="1920" height="1080"></canvas>
+  </div>
+
+  <!-- 6. outro -->
+  <div class="scene" id="s6">
+    <div class="wm abs" id="o-wm" style="font-size:190px; left:0; right:0; top:330px; text-align:center">MuseBuddies</div>
+    <div class="cap" id="o-tag" style="font-size:60px; left:0; right:0; top:585px; text-align:center; font-weight:650">Plans made between Muses, <em>decided by people.</em></div>
+    <div class="fine" id="o-fine" style="left:0; right:0; top:720px; text-align:center">End-to-end encrypted · Self-host in one command</div>
+    <div class="pill" id="o-url" style="left:50%; top:800px">dallonjarman.github.io/MuseBuddies</div>
+  </div>
+
+  <!-- the flying Muses sit above every dark scene -->
+  <div class="scene" id="fly"></div>
+
+  <!-- 1. the group chat (on top until the sky swallows it) -->
+  <div class="scene" id="s1">
+    <div class="hl"><div id="h1">41 messages.</div><div id="h2">2 days.</div><div id="h3" class="bad">No plan.</div></div>
+    <div class="sub" id="h-sub">Planning dinner by group chat.</div>
+    <div class="gc" id="gc">
+      <div class="gc-head"><span class="dots"><i style="background:#c9a7f2"></i><i style="background:#8fdcae"></i><i style="background:#f0bf72"></i></span><span><b>Dinner crew 🍽️</b><small>Alex, Sam, Priya, you</small></span><span class="gc-count" id="gc-count">0 messages</span></div>
+      <div class="gc-list"><div class="gc-roll" id="gc-roll"></div></div>
+    </div>
+  </div>
+
+<script src="muses.js"></script>
+<script>
+const $ = (s) => document.querySelector(s);
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const prog = (t, a, b) => clamp((t - a) / (b - a));
+const out3 = (x) => 1 - Math.pow(1 - x, 3);
+const inOut = (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+const back = (x) => { const c1 = 1.9, c3 = c1 + 1; return x <= 0 ? 0 : 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
+const lerp = (a, b, k) => a + (b - a) * k;
+function rng(seed) { return () => { seed |= 0; seed = (seed + 0x6d2b79f5) | 0; let r = Math.imul(seed ^ (seed >>> 15), 1 | seed); r = (r + Math.imul(r ^ (r >>> 7), 61 | r)) ^ r; return ((r ^ (r >>> 14)) >>> 0) / 4294967296; }; }
+const art = (who) => window.MuseArt.svg(who);
+const COLORS = { you: "#9fd0f5", them: "#c9a7f2", sam: "#8fdcae", priya: "#f0bf72" };
+// Fade in over [a, a+f], hold, fade out over [b-f, b].
+const win = (t, a, b, f = 0.3) => Math.min(prog(t, a, a + f), 1 - prog(t, b - f, b));
+
+// ---------------------------------------------------------------- static set-up
+
+const cloudSVG = `<svg viewBox="0 0 340 210"><defs><linearGradient id="cf" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#d9d0ff"/></linearGradient><radialGradient id="cg"><stop offset="0" stop-color="#9b85ff" stop-opacity=".55"/><stop offset="1" stop-color="#9b85ff" stop-opacity="0"/></radialGradient></defs><ellipse cx="170" cy="120" rx="170" ry="95" fill="url(#cg)"/><g fill="#c9bcff" opacity=".55"><circle cx="92" cy="104" r="44"/><circle cx="246" cy="100" r="46"/></g><g fill="url(#cf)"><circle cx="112" cy="112" r="50"/><circle cx="178" cy="86" r="62"/><circle cx="244" cy="116" r="46"/><circle cx="70" cy="140" r="34"/><circle cx="282" cy="146" r="30"/><rect x="62" y="122" width="226" height="56" rx="28"/></g><ellipse cx="160" cy="70" rx="40" ry="16" fill="#fff" opacity=".7"/></svg><span class="lbl"><svg class="lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2.5" fill="none" stroke="#6d4aff" stroke-width="2.2"/><path d="M8 11V8a4 4 0 0 1 8 0v3" fill="none" stroke="#6d4aff" stroke-width="2.2"/></svg>MuseBuddies relay</span><span class="chip">end-to-end encrypted</span>`;
+$("#m-cloud").innerHTML = cloudSVG;
+$("#g-cloud").innerHTML = cloudSVG;
+
+const CHAT = [
+  ["me", "who's free this week for dinner?"], ["Alex", "me! when"], ["Sam", "i can't do mon or tue"], ["Priya", "wed?"],
+  ["Alex", "wed i have a thing"], ["me", "thursday?"], ["Sam", "maybe thursday, let me check"], ["Priya", "thursday after 7 only"],
+  ["Alex", "wait which thursday"], ["me", "this one"], ["Sam", "ok i'm out thursday actually 😭"], ["Priya", "friday??"],
+  ["Alex", "friday works"], ["me", "i'm away friday"], ["Sam", "where are we even going"], ["Priya", "somewhere veggie pls"],
+  ["Alex", "sushi?"], ["Sam", "i had sushi yesterday"], ["me", "ok what about"], ["Priya", "can we do next week"],
+  ["Alex", "next week is bad"], ["Sam", "lol"], ["me", "…"], ["Priya", "who's booking"]
+];
+const ROW = 80;
+const roll = $("#gc-roll");
+const chatEls = CHAT.map(([who, text], i) => {
+  const d = document.createElement("div");
+  d.className = `gc-m${who === "me" ? " me" : ""}`;
+  d.style.top = `${i * ROW}px`;
+  d.innerHTML = `${who === "me" ? "" : `<small>${who}</small>`}<p>${text}</p>`;
+  roll.append(d);
+  return d;
+});
+
+const fly = $("#fly");
+const flyers = {};
+for (const who of ["you", "them", "sam", "priya"]) {
+  const m = document.createElement("div");
+  m.className = "mz";
+  m.innerHTML = `<div class="say"></div>${art(who)}`;
+  fly.append(m);
+  flyers[who] = { el: m, say: m.querySelector(".say"), trail: Array.from({ length: 12 }, () => { const s = document.createElement("i"); s.className = "spark"; s.style.background = COLORS[who]; s.style.boxShadow = `0 0 14px ${COLORS[who]}`; fly.append(s); return s; }) };
+}
+
+const starCtx = $("#stars").getContext("2d");
+const R0 = rng(7);
+const STARS = Array.from({ length: 260 }, () => ({ x: R0() * 1920, y: R0() * 1080, r: R0() < 0.12 ? 1.4 + R0() : 0.5 + R0() * 0.8, p: R0() * 6.28, s: 0.6 + R0() * 1.6 }));
+const confCtx = $("#confetti").getContext("2d");
+const R1 = rng(42);
+const CONF = Array.from({ length: 170 }, (_, i) => { const a = -Math.PI * (0.08 + R1() * 0.84); const v = 520 + R1() * 820; return { vx: Math.cos(a) * v, vy: Math.sin(a) * v, rot: R1() * 6, vr: (R1() - 0.5) * 10, w: 9 + R1() * 9, h: 14 + R1() * 14, c: ["#9b85ff", "#9fd0f5", "#c9a7f2", "#8fdcae", "#f0bf72", "#ff7a59", "#ffffff", "#e85d75"][i % 8] }; });
+
+// ---------------------------------------------------------------- helpers per frame
+
+function setMuse(el, x, y, s = 1, rot = 0, o = 1) {
+  el.style.transform = `translate(${x - 75}px, ${y - 75}px) scale(${s}) rotate(${rot}deg)`;
+  el.style.opacity = o;
+}
+const quad = (a, c, b, k) => ({ x: (1 - k) * (1 - k) * a.x + 2 * (1 - k) * k * c.x + k * k * b.x, y: (1 - k) * (1 - k) * a.y + 2 * (1 - k) * k * c.y + k * k * b.y });
+// A Muse flying along an arc between t0 and t1, with a sparkle trail behind it.
+function flight(f, t, t0, t1, from, to, lift, s0, s1) {
+  const c = { x: (from.x + to.x) / 2, y: Math.min(from.y, to.y) - lift };
+  const at = (tt) => { const k = inOut(prog(tt, t0, t1)); return { ...quad(from, c, to, k), s: lerp(s0, s1, k), k }; };
+  const p = at(t);
+  const flying = t > t0 && t < t1;
+  setMuse(f.el, p.x, p.y, p.s, flying ? Math.sin(t * 22) * 9 : 0, t < t0 ? 0 : 1);
+  f.trail.forEach((sp, i) => {
+    const tt = t - (i + 1) * 0.035;
+    const q = at(tt);
+    const vis = tt > t0 && tt < t1 + 0.05 && t < t1 + 0.45;
+    const fade = (1 - i / f.trail.length) * (1 - prog(t, t1, t1 + 0.45));
+    sp.style.transform = `translate(${q.x + Math.sin(i * 2.3) * 14}px, ${q.y + 24 + Math.cos(i * 1.7) * 12}px) scale(${1 - i / 14})`;
+    sp.style.opacity = vis ? fade : 0;
+  });
+  return p;
+}
+function idle(f, x, y, t, s = 1, phase = 0) { setMuse(f.el, x, y + Math.sin(t * 3 + phase) * 6, s); f.trail.forEach((sp) => (sp.style.opacity = 0)); }
+function hide(f) { f.el.style.opacity = 0; f.say.style.opacity = 0; f.trail.forEach((sp) => (sp.style.opacity = 0)); }
+// Speech bubble: typing dots from a, words from a+0.3, gone at b.
+function speak(f, t, a, b, text, dim = false, lean = 0) {
+  const o = win(t, a, b, 0.18);
+  f.say.style.opacity = o * (dim ? 0.4 : 1);
+  f.say.style.transform = `translateX(calc(-50% + ${lean}px)) scale(${0.6 + 0.4 * back(prog(t, a, a + 0.3))})`;
+  const html = t < a + 0.3 ? '<span class="dots"><i></i><i></i><i></i></span>' : text;
+  if (f.say.innerHTML !== html) f.say.innerHTML = html;
+}
+function blink(t) {
+  document.querySelectorAll(".dm-eyes").forEach((e, i) => {
+    const ph = (t + i * 0.83) % 3.4;
+    e.style.transformBox = "fill-box";
+    e.style.transformOrigin = "center";
+    e.style.transform = ph < 0.11 ? "scaleY(0.12)" : "none";
+  });
+}
+const scramble = (t, n) => { const A = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"; const r = rng(Math.floor(t * 12) + 99); return Array.from({ length: n }, () => A[(r() * 64) | 0]).join(""); };
+
+// ---------------------------------------------------------------- the timeline
+
+const T = { s1: [0, 3.25], s2: [3.0, 6.6], s3: [6.6, 11.4], s4: [11.4, 14.6], s5: [14.6, 17.8], s6: [17.8, 20.6] };
+
+window.renderAt = (t) => {
+  blink(t);
+
+  // sky: stars and slow aurora, always there under the dark scenes
+  starCtx.clearRect(0, 0, 1920, 1080);
+  for (const s of STARS) {
+    starCtx.globalAlpha = 0.25 + 0.6 * (0.5 + 0.5 * Math.sin(s.p + t * s.s));
+    starCtx.fillStyle = "#fff";
+    starCtx.beginPath();
+    starCtx.arc(s.x + Math.sin(t * 0.2) * 6, s.y, s.r, 0, 6.283);
+    starCtx.fill();
+  }
+  $("#au1").style.transform = `translate(${-120 + Math.sin(t * 0.35) * 120}px, ${-260 + Math.cos(t * 0.3) * 60}px)`;
+  $("#au2").style.transform = `translate(${1250 + Math.cos(t * 0.3) * 120}px, ${-120 + Math.sin(t * 0.4) * 80}px)`;
+  $("#au3").style.transform = `translate(${560 + Math.sin(t * 0.28) * 160}px, ${620 + Math.cos(t * 0.33) * 60}px)`;
+
+  // ---- 1. the group chat
+  const s1 = $("#s1");
+  s1.style.display = t < 3.5 ? "block" : "none";
+  if (t < 3.5) {
+    const shown = clamp((t - 0.05) / 0.115, 0, CHAT.length);
+    chatEls.forEach((el, i) => {
+      const k = clamp(shown - i);
+      el.style.opacity = k > 0 ? Math.min(1, k * 2) : 0;
+      el.style.transform = `scale(${0.7 + 0.3 * back(k)})`;
+    });
+    const listH = 900 - 120;
+    const contentH = shown * ROW + 20;
+    roll.style.transform = `translateY(${Math.min(0, listH - contentH)}px)`;
+    $("#gc-count").textContent = `${Math.round(41 * out3(prog(t, 0.05, 2.8)))} messages`;
+    [["#h1", 0.12], ["#h2", 0.4], ["#h3", 0.68]].forEach(([id, a]) => {
+      const k = out3(prog(t, a, a + 0.35));
+      $(id).style.opacity = k;
+      $(id).style.transform = `translateY(${(1 - k) * 60}px)`;
+    });
+    const ks = out3(prog(t, 1.0, 1.35));
+    $("#h-sub").style.opacity = ks;
+    $("#h-sub").style.transform = `translateY(${(1 - ks) * 20}px)`;
+    const shake = t > 2.5 && t < 3.0 ? Math.sin(t * 90) * 5 * prog(t, 2.5, 2.8) : 0;
+    $("#gc").style.transform = `translateX(${shake}px) rotate(${shake * 0.08}deg)`;
+    // the night sky swallows the chat from the centre
+    const r = 1250 * inOut(prog(t, 3.0, 3.45));
+    s1.style.clipPath = r > 0 ? `circle(${r}px at 960px 540px)` : "none";
+    s1.style.webkitMaskImage = "";
+    if (r > 0) { s1.style.clipPath = "none"; s1.style.webkitMaskImage = `radial-gradient(circle at 960px 540px, transparent ${r}px, #000 ${r + 2}px)`; }
+  }
+
+  // ---- 2. reveal
+  const s2o = t < 3.0 ? 0 : 1 - prog(t, 6.35, 6.6);
+  $("#s2").style.opacity = s2o;
+  if (s2o > 0) {
+    const kw = out3(prog(t, 3.18, 3.68));
+    $("#r-wm").style.opacity = kw;
+    $("#r-wm").style.transform = `translateY(${(1 - kw) * 80}px) scale(${0.92 + 0.08 * kw})`;
+    [["#r-you", 3.3, 380, 250, -8], ["#r-them", 3.45, 1540, 220, 8], ["#r-priya", 3.6, 1560, 760, -6], ["#r-sam", 3.75, 360, 740, 6]].forEach(([id, a, x, y, rot], i) => {
+      const k = back(prog(t, a, a + 0.45));
+      const el = $(id);
+      el.style.opacity = prog(t, a, a + 0.12);
+      el.style.transform = `translate(${x - 75}px, ${y - 75 + Math.sin(t * 2.6 + i) * 10}px) scale(${1.25 * k}) rotate(${rot}deg)`;
+    });
+    const kt = out3(prog(t, 4.3, 4.7));
+    $("#r-tag").style.opacity = kt;
+    $("#r-tag").style.transform = `translateY(${(1 - kt) * 40}px)`;
+  }
+
+  // ---- 3. muses meet
+  const s3o = win(t, 6.6, 11.4, 0.3);
+  $("#s3").style.opacity = s3o;
+  const cl = { x: 1340, y: 660 };
+  if (s3o > 0) {
+    const kp = out3(prog(t, 6.6, 7.1));
+    $("#phone").style.transform = `translate(${(1 - kp) * -120}px, 0) scale(1.62)`;
+    $("#m-cloud").style.transform = `translate(${cl.x - 260}px, ${cl.y - 160 + Math.sin(t * 1.8) * 8}px) scale(${0.85 + 0.15 * out3(prog(t, 6.8, 7.3))})`;
+    $("#m-cloud").style.opacity = prog(t, 6.8, 7.2);
+    const kc = out3(prog(t, 6.95, 7.35));
+    $("#m-cap").style.opacity = kc;
+    $("#m-cap").style.transform = `translateY(${(1 - kc) * 30}px)`;
+    // typing, then sending
+    const msg = "dinner with Alex this week?";
+    const n = Math.floor(msg.length * prog(t, 7.0, 8.0));
+    const typing = t < 8.2 ? msg.slice(0, n) : "";
+    const typed = $("#ph-typed");
+    if (typed.textContent !== typing) typed.textContent = typing;
+    $("#ph-comp").classList.toggle("has-text", typing.length > 0);
+    const sent = $("#ph-sent");
+    const ks = back(prog(t, 8.2, 8.5));
+    sent.style.display = t >= 8.2 ? "block" : "none";
+    sent.style.transform = `scale(${0.6 + 0.4 * ks})`;
+    sent.style.transformOrigin = "bottom right";
+    const reply = $("#ph-reply");
+    reply.style.display = t >= 8.55 ? "block" : "none";
+    reply.style.transform = `scale(${0.6 + 0.4 * back(prog(t, 8.55, 8.85))})`;
+    reply.style.transformOrigin = "bottom left";
+    $("#ph-av").classList.toggle("is-away", t > 8.75);
+    $("#ph-av").style.boxShadow = t > 8.75 ? "0 0 0 2px #000, 0 0 0 5px rgb(155 133 255 / 0.9)" : "";
+    $("#ph-av").querySelector(".dm-m").style.opacity = t > 8.75 ? 0.18 : 1;
+  }
+
+  // ---- 4. sealed
+  const s4o = win(t, 11.4, 14.6, 0.3);
+  $("#s4").style.opacity = s4o;
+  if (s4o > 0) {
+    const kc = out3(prog(t, 11.55, 11.95));
+    $("#e-cap").style.opacity = kc;
+    $("#e-cap").style.transform = `translateY(${(1 - kc) * 30}px)`;
+    const kn = out3(prog(t, 11.45, 11.85));
+    $("#e-l").style.transform = `translateX(${(1 - kn) * -60}px)`;
+    $("#e-r").style.transform = `translateX(${(1 - kn) * 60}px)`;
+    $("#e-wire").style.opacity = prog(t, 11.6, 11.9);
+    const sealing = prog(t, 12.45, 12.8);
+    $("#e-code").textContent = scramble(t, 22);
+    $("#e-code").style.opacity = 0.35 + 0.65 * sealing;
+    // the message leaves Phaedra, is sealed in the relay, and opens on Bramble's side
+    const b1 = $("#e-b1"), b2 = $("#e-b2");
+    const k1 = inOut(prog(t, 12.0, 12.6));
+    b1.style.left = `${lerp(160, 740, k1)}px`;
+    b1.style.top = `${lerp(390, 585, k1)}px`;
+    b1.style.opacity = win(t, 11.85, 12.75, 0.2);
+    b1.style.transform = `scale(${1 - 0.25 * k1})`;
+    const pk = prog(t, 12.6, 13.35);
+    $("#e-pkt").style.left = `${lerp(-20, 740, inOut(pk))}px`;
+    $("#e-pkt").style.opacity = pk > 0 && pk < 1 ? 1 : 0;
+    const k2 = out3(prog(t, 13.3, 13.75));
+    b2.style.left = `${lerp(1150, 1300, k2)}px`;
+    b2.style.top = `${lerp(585, 390, k2)}px`;
+    b2.style.opacity = prog(t, 13.3, 13.5);
+    b2.style.transform = `scale(${0.75 + 0.25 * k2})`;
+  }
+
+  // ---- 5. the whole group
+  const s5o = win(t, 14.6, 17.8, 0.3);
+  $("#s5").style.opacity = s5o;
+  const gc = { x: 960, y: 640 };
+  if (s5o > 0) {
+    const kc = out3(prog(t, 14.7, 15.1));
+    $("#g-cap").style.opacity = kc;
+    $("#g-cap").style.transform = `translateY(${(1 - kc) * 30}px)`;
+    $("#g-cloud").style.transform = `translate(${gc.x - 260}px, ${gc.y - 160 + Math.sin(t * 1.8) * 8}px) scale(${(0.85 + 0.15 * out3(prog(t, 14.6, 15.0))) * (t > 16.55 && t < 16.95 ? 1 + 0.06 * Math.sin(prog(t, 16.55, 16.95) * Math.PI) : 1)})`;
+    $("#g-cloud").style.opacity = prog(t, 14.6, 14.9);
+    const ka = back(prog(t, 16.6, 16.95));
+    $("#g-agree").style.opacity = prog(t, 16.6, 16.75);
+    $("#g-agree").style.transform = `translate(${gc.x}px, ${gc.y + 150}px) translate(-50%, -50%) scale(${0.6 + 0.4 * ka})`;
+    const kd = out3(prog(t, 16.85, 17.25));
+    $("#g-card").style.opacity = kd;
+    $("#g-card").style.transform = `translate(${1150 + (1 - kd) * 80}px, 850px)`;
+    // confetti from the cloud
+    confCtx.clearRect(0, 0, 1920, 1080);
+    const dt = t - 16.6;
+    if (dt > 0) {
+      for (const p of CONF) {
+        const x = gc.x + p.vx * dt * 0.9;
+        const y = gc.y - 120 + p.vy * dt + 900 * dt * dt;
+        confCtx.save();
+        confCtx.globalAlpha = clamp(1.6 - dt);
+        confCtx.translate(x, y);
+        confCtx.rotate(p.rot + p.vr * dt);
+        confCtx.fillStyle = p.c;
+        confCtx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h * Math.abs(Math.cos((p.rot + p.vr * dt) * 1.7)));
+        confCtx.restore();
+      }
+    }
+  }
+
+  // ---- 6. outro
+  const s6o = prog(t, 17.8, 18.1);
+  $("#s6").style.opacity = s6o;
+  if (s6o > 0) {
+    const kw = out3(prog(t, 17.85, 18.35));
+    $("#o-wm").style.opacity = kw;
+    $("#o-wm").style.transform = `translateY(${(1 - kw) * 60}px) scale(${0.94 + 0.06 * kw})`;
+    const kt = out3(prog(t, 18.3, 18.7));
+    $("#o-tag").style.opacity = kt;
+    $("#o-tag").style.transform = `translateY(${(1 - kt) * 30}px)`;
+    const kf = out3(prog(t, 18.75, 19.1));
+    $("#o-fine").style.opacity = kf;
+    const ku = back(prog(t, 18.95, 19.35));
+    $("#o-url").style.opacity = prog(t, 18.95, 19.1);
+    $("#o-url").style.transform = `translateX(-50%) scale(${0.7 + 0.3 * ku})`;
+  }
+
+  // ---- the flying Muses across scenes 3, 5 and 6
+  const F = flyers;
+  for (const w of Object.keys(F)) F[w].el.classList.toggle("is-happy", (t > 16.6 && t < 17.8) || t > 18.0);
+  if (t >= 6.6 && t < 11.4) {
+    const o = s3o;
+    const av = { x: 230 + 150 * 1.62, y: 36 + 81 * 1.62 };
+    const slotL = { x: cl.x - 175, y: cl.y - 150 }, slotR = { x: cl.x + 175, y: cl.y - 150 };
+    if (t < 8.75) hide(F.you); else if (t < 9.6) flight(F.you, t, 8.75, 9.6, av, slotL, 160, 0.55, 1.15); else idle(F.you, slotL.x, slotL.y, t, 1.15);
+    if (t < 9.05) hide(F.them); else if (t < 9.8) flight(F.them, t, 9.05, 9.8, { x: 2050, y: 260 }, slotR, 60, 1.15, 1.15); else idle(F.them, slotR.x, slotR.y, t, 1.15, 1.3);
+    speak(F.you, t, 9.6, 11.4, "Is Alex free this week? 🍝", false, -120);
+    speak(F.them, t, 10.0, 11.4, "Thursday after 7 works!", false, 110);
+    F.you.el.style.opacity *= o; F.them.el.style.opacity *= o;
+    F.you.say.style.opacity *= o; F.them.say.style.opacity *= o;
+    hide(F.sam); hide(F.priya);
+  } else if (t >= 14.6 && t < 17.8) {
+    const o = s5o;
+    const slots = { you: [-420, -40], sam: [-150, -190], priya: [150, -190], them: [420, -40] };
+    ["you", "sam", "priya", "them"].forEach((w, i) => {
+      const to = { x: gc.x + slots[w][0], y: gc.y + slots[w][1] };
+      const a = 14.75 + i * 0.12, b = a + 0.6;
+      if (t < a) hide(F[w]);
+      else if (t < b) flight(F[w], t, a, b, { x: to.x + (i < 2 ? -260 : 260), y: 1250 }, to, 40, 1, 1.1);
+      else idle(F[w], to.x, to.y, t, 1.1, i);
+      F[w].el.style.opacity *= o;
+    });
+    const lines = [["you", 15.35, "Saturday?"], ["them", 15.65, "Free all weekend"], ["sam", 15.95, "Sam loves sushi 🍣"], ["priya", 16.25, "I'll book it"]];
+    lines.forEach(([w, a, text], i) => {
+      const next = lines[i + 1]?.[1] ?? 16.6;
+      speak(F[w], t, a, Math.min(16.6, next + 0.55), text, t > next + 0.25);
+      F[w].say.style.opacity *= o;
+    });
+  } else if (t >= 17.8) {
+    const row = [["sam", 640], ["you", 840], ["them", 1080], ["priya", 1280]];
+    row.forEach(([w, x], i) => {
+      const k = back(prog(t, 17.95 + i * 0.08, 18.4 + i * 0.08));
+      setMuse(F[w].el, x, 225 + Math.sin(t * 3 + i) * 7, 0.95 * k, 0, prog(t, 17.95 + i * 0.08, 18.05 + i * 0.08));
+      F[w].say.style.opacity = 0;
+      F[w].trail.forEach((sp) => (sp.style.opacity = 0));
+    });
+  } else {
+    for (const w of Object.keys(F)) hide(F[w]);
+  }
+};
+
+window.ready = (async () => {
+  await document.fonts.ready;
+  window.renderAt(0);
+  return true;
+})();
+</script>
+</body>
+</html>
