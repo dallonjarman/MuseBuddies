@@ -233,10 +233,11 @@ async function start() {
             vec2 q = vW.xz * .22;
             vec3 n = normalize(vec3(sin(q.x * 3.1 + q.y * 1.7 + uTime * .9) * .003 + sin(q.y * 5.3 - uTime * .7) * .002, 1., cos(q.x * 4.7 + q.y * 2.3 + uTime) * .003));
             n = normalize(mix(vec3(0., 1., 0.), n, 1. - smoothstep(60., 500., vD)));
-            vec3 r = reflect(v, n);
-            r.y = abs(r.y);
-            vec3 c = skyColor(r) * .82;
-            float glint = pow(max(dot(r, uSun), 0.), 400.) * 3.;
+            vec3 mirror = reflect(v, vec3(0., 1., 0.));
+            vec3 c = skyColor(mirror) * .82;
+            // Ripples only scatter the sun's glitter; the mirrored sky stays calm.
+            vec3 r = normalize(reflect(v, normalize(n * vec3(4., 1., 4.))));
+            float glint = pow(max(dot(r, uSun), 0.), 300.) * 2.5;
             c += uSunCol * glint * uSunAmt;
             c = mix(c, uFog, smoothstep(uFogNear, uFogFar, vD));
             gl_FragColor = vec4(c, 1.);
@@ -283,6 +284,7 @@ async function start() {
     arm.position.set(.22, .92, -.3); arm.rotation.set(-1.1, 0, .35);
     const arm2 = arm.clone(); arm2.position.x = -.22; arm2.rotation.z = -.35;
     you.add(torso, head, hat, legs, legs2, arm, arm2);
+    you.userData.upper = [head, hat, arm, arm2];
   }
 
   // The phone and its screen, drawn on a canvas so the story can change what it shows.
@@ -300,6 +302,7 @@ async function start() {
   const glowTex = radialTexture([[0, "rgba(255,255,255,1)"], [.25, "rgba(255,255,255,.35)"], [1, "rgba(255,255,255,0)"]]);
   const phoneGlow = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: "#a48cff", blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: .55, fog: false }));
   phoneGlow.scale.set(1.4, 1.4, 1);
+  phoneGlow.position.z = -.06;
   phone.add(phoneGlow);
   let screenMode = "";
   function drawScreen(mode) {
@@ -435,20 +438,25 @@ async function start() {
   sky.add(sea);
 
   // Billowing puffs: camera-facing quads, sorted back to front so they layer like real cloud.
+  // A wispy cumulus puff from noise: a soft dome with a flatter base and a ragged edge. Alpha is
+  // the cloud's shape; red holds its density, which the shader uses to light the inside.
   const puffTex = (() => {
-    const c = document.createElement("canvas"); c.width = c.height = 128;
+    const N = 192, c = document.createElement("canvas");
+    c.width = c.height = N;
     const g = c.getContext("2d");
-    g.filter = "blur(7px)";
-    const blob = (x, y, rad, a) => {
-      const grd = g.createRadialGradient(x, y, 0, x, y, rad);
-      grd.addColorStop(0, `rgba(255,255,255,${a})`); grd.addColorStop(.6, `rgba(255,255,255,${a * .5})`); grd.addColorStop(1, "rgba(255,255,255,0)");
-      g.fillStyle = grd; g.beginPath(); g.arc(x, y, rad, 0, 7); g.fill();
-    };
-    blob(64, 72, 46, .5);
-    for (let i = 0; i < 26; i++) {
-      const a = Math.random() * Math.PI * 2, r = Math.sqrt(Math.random()) * 30;
-      blob(64 + Math.cos(a) * r, 66 + Math.sin(a) * r * .6 - Math.random() * 6, 12 + Math.random() * 16, .25 + Math.random() * .2);
+    const img = g.createImageData(N, N);
+    for (let y = 0; y < N; y++) {
+      for (let x = 0; x < N; x++) {
+        const dx = (x - N / 2) / (N / 2), dy = (y - N * .56) / (N / 2);
+        const r = Math.hypot(dx, dy * (dy > 0 ? 1.9 : 1.15));
+        const n = fbm(x / 26 + 11, y / 26 + 7, 5);
+        const a = smooth(1, .3, r + (.5 - n) * .85);
+        const i = (y * N + x) * 4;
+        img.data[i] = img.data[i + 1] = img.data[i + 2] = Math.round(clamp(n * 1.4 - .1) * 255);
+        img.data[i + 3] = Math.round(a * 255);
+      }
     }
+    g.putImageData(img, 0, 0);
     return new THREE.CanvasTexture(c);
   })();
   const puffs = [];
@@ -496,8 +504,8 @@ async function start() {
       uniform vec3 uRight, uUp; uniform float uFogNear, uFogFar;
       varying vec2 vUv; varying float vFog, vNear, vSeed; varying vec3 vDir;
       void main() {
-        float a = aSeed * 6.283;
-        vec2 q = mat2(cos(a), -sin(a), sin(a), cos(a)) * position.xy;
+        float a = (aSeed - .5) * .5;
+        vec2 q = mat2(cos(a), -sin(a), sin(a), cos(a)) * position.xy * vec2(1. + aSeed * .6, 1.);
         vec3 w = aPuff.xyz + (uRight * q.x + uUp * q.y) * aPuff.w;
         vec4 mv = viewMatrix * vec4(w, 1.);
         gl_Position = projectionMatrix * mv;
@@ -511,8 +519,9 @@ async function start() {
       uniform sampler2D uTex; uniform float uOpacity;
       varying vec2 vUv; varying float vFog, vNear, vSeed; varying vec3 vDir;
       void main() {
-        float a = smoothstep(.0, .85, texture2D(uTex, vUv).a);
-        float lit = clamp(.25 + vUv.y * .95, 0., 1.);
+        vec4 tx = texture2D(uTex, vUv);
+        float a = tx.a;
+        float lit = clamp(.12 + vUv.y * .85 + (tx.r - .45) * .55, 0., 1.);
         vec3 shadow = mix(uBot, uTop, .3) * .95;
         vec3 col = mix(shadow, vec3(1., .985, .96), lit);
         float back = pow(max(dot(vDir, uSun), 0.), 6.);
@@ -674,12 +683,14 @@ async function start() {
     [sh(0, .34, [[P.clone().add(V(1.5, .8, 13)), tileC.clone().add(V(3.5, -.5, 0))], [P.clone().add(V(0, 0, 10)), P.clone().add(V(0, 0, 2))]], { fov: [46, 46] }),
      sh(.34, CUT_UP - 4, [[P.clone().add(V(0, 0, 10)), P.clone().add(V(0, 0, 2))], [P.clone().add(V(0, 40, 9)), P.clone().add(V(0, 140, -20))], [P.clone().add(V(0, 260, 6)), P.clone().add(V(0, 500, -30))]], { fov: [46, 78], ease: (t) => t * t }),
      sh(CUT_UP - 4, 1, [[V(0, 330, 150), V(0, 640, -60)], [V(0, 430, 128), V(0, 520, -200)], [V(0, 470, 110), V(0, 476, -220)]], { cut: true, fov: [70, 48], ease: (t) => 1 - (1 - t) ** 2 })],
-    [sh(0, 1, [[V(0, 470, 110), V(0, 476, -220)], [V(10, 498, 80), V(-20, 470, -250)], [orbit(330, 494, -.12), center.clone().add(V(-110, 10, 0))]], { fov: [48, 44] })],
-    [sh(0, 1, [0, .25, .5, .75, 1].map((t) => [orbit(lerp(330, 270, t), lerp(494, 488, t), lerp(-.12, .32, t)), center.clone().add(V(-110, 10, 0))]), { fov: [44, 42] })],
-    [sh(0, 1, [[orbit(270, 488, .32), center.clone().add(V(-110, 10, 0))], [V(-40, 620, 260), center], [V(0, 780, 560), center.clone().add(V(0, -20, 0))]], { fov: [42, 50] })],
-    [sh(0, 1, [[V(0, 780, 560), center.clone().add(V(0, -20, 0))], [V(0, 600, 360), V(0, 300, 40)], [V(0, 420, 250), V(0, 160, -200)], [V(0, 150, 230), V(0, h + 20, -260)],
-      [V(-8, h + 10, 34), V(0, h + 2, -20)], [fromScreen(1.6, .9, .8), S]], { fov: [50, 40] })],
-    [sh(0, 1, [[fromScreen(1.6, .9, .8), S], [V(-2, h + 4, 9), V(0, h + 6, -60)], [V(0, h + 26, 60), V(0, h + 60, -400)]], { fov: [40, 46] })]
+    [sh(0, 1, [[V(0, 470, 110), V(0, 476, -220)], [V(10, 498, 80), V(-50, 470, -250)], [orbit(330, 494, -.12), center.clone().add(V(-140, 10, 0))]], { fov: [48, 44] })],
+    [sh(0, 1, [0, .25, .5, .75, 1].map((t) => [orbit(lerp(330, 270, t), lerp(494, 488, t), lerp(-.12, .32, t)), center.clone().add(V(-140, 10, 0))]), { fov: [44, 42] })],
+    [sh(0, 1, [[orbit(270, 488, .32), center.clone().add(V(-140, 10, 0))], [V(-40, 620, 260), center], [V(0, 780, 560), center.clone().add(V(0, -20, 0))]], { fov: [42, 50] })],
+    [sh(0, .45, [[V(0, 780, 560), center.clone().add(V(0, -20, 0))], [V(0, 600, 360), V(0, 300, 40)], [V(0, 420, 250), V(0, 160, -200)], [V(0, 150, 230), V(0, h + 20, -260)],
+      [V(-8, h + 10, 34), V(0, h + 2, -20)], [fromScreen(1.6, .9, .8), S]], { fov: [50, 40] }),
+     sh(.45, .62, [[fromScreen(1.6, .9, .8), S], [fromScreen(.5, .05, .3), S]], { fov: [40, 36] }),
+     sh(.62, 1, [[fromScreen(.5, .05, .3), S], [fromScreen(.44, .07, .26), S]], { fov: [36, 35] })],
+    [sh(0, 1, [[fromScreen(.44, .07, .26), S], [V(-2, h + 4, 9), V(0, h + 6, -60)], [V(0, h + 26, 60), V(0, h + 60, -400)]], { fov: [40, 46] })]
   ];
   for (const shots of SHOTS) {
     for (const s of shots) {
@@ -902,6 +913,9 @@ async function start() {
     }
     const nearPhone = camera.position.distanceTo(S);
     camera.near = clamp(nearPhone * .25, .01, .5);
+    // Right at the phone, your own head and arms would fill the frame: let the camera see past them.
+    for (const part of you.userData.upper) part.visible = nearPhone > .9;
+    phoneGlow.material.opacity = .55 * smooth(.7, 1.6, nearPhone);
     camera.updateProjectionMatrix();
     camPos.copy(camera.position);
     dome.position.copy(camera.position);
@@ -928,7 +942,7 @@ async function start() {
     ridges.forEach((r, i) => r.material.color.copy(ridgeDark).lerp(pal.hor, .35 + i * .17).lerp(pal.fog, .15));
 
     // The phone in your hand: the ask on the way in, the plan on the way home.
-    drawScreen(s > 8.3 ? "plan" : "ask");
+    drawScreen(s > 8.4 ? "plan" : "ask");
     phoneGlow.material.color.set(s > 8.3 ? "#ffc977" : "#a48cff");
 
     // Inside the phone: the week as tiles, free time lighting up, then sealed into one message.
