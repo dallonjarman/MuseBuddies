@@ -1,104 +1,48 @@
-// Landing page behavior: theme toggle, rotating name, use-case picker, routines and the terminal.
-// The hero demo is demo.js and the feature playground is play.js. Everything is readable without
-// JavaScript; with reduced motion, demos show their final state.
+// Page behavior that works with or without the 3D story: copying the setup note and the relay
+// command, and the "Say yes" button on the plan card. The story itself is world.js.
 (() => {
-  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-  const onVisible = (el, fn, threshold = 0.35) => {
-    if (!el) return;
-    const io = new IntersectionObserver(([e]) => {
-      if (e.isIntersecting) { io.disconnect(); fn(); }
-    }, { threshold });
-    io.observe(el);
-  };
-
-  // ---------------------------------------------------------------- theme
-
-  const root = document.documentElement;
-  const toggle = document.querySelector(".theme-toggle");
-  const isDark = () => root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
-  const label = () => toggle?.setAttribute("aria-label", isDark() ? "Switch to light theme" : "Switch to dark theme");
-  label();
-  toggle?.addEventListener("click", () => {
-    root.dataset.theme = isDark() ? "light" : "dark";
-    try { localStorage.setItem("mt-theme", root.dataset.theme); } catch { /* private mode */ }
-    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", isDark() ? "#0b0b0e" : "#ffffff");
-    label();
-  });
-
-  // ---------------------------------------------------------------- picker (works with or without motion)
-
-  const tabs = [...document.querySelectorAll('.picker-tabs [role="tab"]')];
-  const select = (tab, focus) => {
-    for (const t of tabs) {
-      const on = t === tab;
-      t.setAttribute("aria-selected", String(on));
-      t.tabIndex = on ? 0 : -1;
-      document.getElementById(t.getAttribute("aria-controls")).hidden = !on;
+  const copy = async (text) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      const area = Object.assign(document.createElement("textarea"), { value: text });
+      area.setAttribute("readonly", "");
+      area.style.cssText = "position:fixed;opacity:0";
+      document.body.append(area);
+      area.select();
+      const ok = document.execCommand("copy");
+      area.remove();
+      return ok;
     }
-    if (focus) tab.focus();
   };
-  tabs.forEach((tab, i) => {
-    tab.addEventListener("click", () => select(tab));
-    tab.addEventListener("keydown", (e) => {
-      const d = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
-      if (d) { e.preventDefault(); select(tabs[(i + d + tabs.length) % tabs.length], true); }
-    });
+
+  const button = document.getElementById("copyBtn");
+  const status = document.getElementById("copyStatus");
+  const note = document.querySelector("[data-copy-note]");
+  const label = button?.querySelector("span");
+  button?.addEventListener("click", async () => {
+    const ok = await copy(note.textContent.trim());
+    label.textContent = ok ? "Copied" : "Copy failed";
+    status.textContent = ok ? "Copied. Now paste it into your Muse chat." : "Couldn't copy. Select the note and copy it yourself.";
+    document.dispatchEvent(new CustomEvent("w:chime", { detail: { kind: "copy" } }));
+    setTimeout(() => { label.textContent = "Copy the note"; }, 2400);
   });
 
-  if (reduce) return;
-
-  // ---------------------------------------------------------------- rotating name in the headline
-
-  const words = [...document.querySelectorAll(".rot-word")];
-  if (words.length > 1) {
-    let i = 0;
-    setInterval(() => {
-      if (document.hidden) return;
-      const cur = words[i];
-      i = (i + 1) % words.length;
-      cur.classList.remove("is-on");
-      cur.classList.add("is-out");
-      words[i].classList.remove("is-out");
-      words[i].classList.add("is-on");
-      setTimeout(() => cur.classList.remove("is-out"), 400);
-    }, 2400);
-  }
-
-  // ---------------------------------------------------------------- routines play their run log
-
-  for (const routine of document.querySelectorAll("[data-routine]")) {
-    const steps = [...routine.querySelectorAll(".rt-log > li")];
-    routine.classList.add("is-live");
-    onVisible(routine, async () => {
-      for (const step of steps) {
-        step.classList.add("is-in");
-        await sleep(step.classList.contains("in") ? 1100 : 700);
-      }
-    }, 0.45);
-  }
-
-  // ---------------------------------------------------------------- terminal types itself
-
-  const term = document.querySelector("[data-term]");
-  if (term) {
-    const html = term.innerHTML;
-    onVisible(term, async () => {
-      const lines = html.split("\n");
-      term.innerHTML = "";
-      for (const line of lines) {
-        const isCmd = line.startsWith("<b>");
-        if (isCmd) {
-          const text = line.replace(/<[^>]+>/g, "").replace(/^\$ /, "");
-          term.insertAdjacentHTML("beforeend", "<b>$</b> ");
-          for (const ch of text) { term.insertAdjacentText("beforeend", ch); await sleep(26); }
-          term.insertAdjacentText("beforeend", "\n");
-          await sleep(500);
-        } else {
-          term.insertAdjacentHTML("beforeend", line + "\n");
-          await sleep(380);
-        }
-      }
+  for (const btn of document.querySelectorAll("[data-copy-cmd]")) {
+    btn.addEventListener("click", async () => {
+      const ok = await copy(btn.dataset.copyCmd);
+      btn.textContent = ok ? "Copied" : "Failed";
+      setTimeout(() => { btn.textContent = "Copy"; }, 2000);
     });
   }
+
+  const yes = document.querySelector("[data-yes]");
+  yes?.addEventListener("click", () => {
+    const plan = yes.closest(".w-plan");
+    const on = !plan.classList.contains("is-yes");
+    plan.classList.toggle("is-yes", on);
+    yes.textContent = on ? "It's a plan" : "Say yes";
+    if (on) document.dispatchEvent(new CustomEvent("w:chime", { detail: { kind: "yes" } }));
+  });
 })();
