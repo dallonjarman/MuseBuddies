@@ -1,6 +1,6 @@
 # Pinned so builds are reproducible; Dependabot proposes patch and minor updates,
 # and a weekly CI rebuild picks up security fixes in the base image.
-FROM node:22.23.3-slim
+FROM node:22.23.4-slim
 
 WORKDIR /app
 ENV NODE_ENV=production PORT=8787 HOST=0.0.0.0 DATABASE_PATH=/data/relay.db
